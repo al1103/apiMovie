@@ -1,7 +1,8 @@
 const express = require('express');
 const methodOverride = require('method-override'); // Notice correct spelling
 const path = require('path');
-
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = "mongodb+srv://phamtuan72az:1JLluHBFWpYed7em@zilong.sz4jqlp.mongodb.net/?retryWrites=true&w=majority&appName=zilong";
 const mongoose = require('mongoose');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -10,19 +11,31 @@ const port = 4000;
 const config = require('./db');
 const router = require('./router'); // Assuming router exports a function
 
-async function connect() {
+
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+
+async function run() {
   try {
-    await mongoose.connect(config.DB, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB successfully");
-  } catch (error) {
-    console.error("Connection to MongoDB failed:", error.message);
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
   }
 }
+run().catch(console.dir);
 
-connect();
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(morgan('combined'));
