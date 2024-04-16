@@ -56,7 +56,7 @@ filterContent();
         "language",
         "year",
         "country",
-- Ví dụ : GET https://apimovie-6ifv.onrender.com/Search?slug=chube&category=action&quality=HD&language=en&year=2023
+- Ví dụ : GET https://apimovie-6ifv.onrender.com/Search=chube&category=action&quality=HD&language=en&year=2023
 - **Phim và tập phim:**
     - Phương thức: GET
     - URL: `https://apimovie-6ifv.onrender.com/movie/${slug}` (thay thế `slug` bằng đường dẫn phim)
