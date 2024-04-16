@@ -1,4 +1,5 @@
 const Movie = require("../models/movies");
+const MovieDetail = require("../models/moviedetails");
 
 class Movies {
   async getAllMovies(req, res, next) {
@@ -43,38 +44,48 @@ class Movies {
       next(error);
     }
   }
-  async SearchMovie(req, res, next) {
+  async  SearchMovie(req, res, next) {
     try {
       // Extract search parameters with type checking (optional)
       const nameQuery = req.query.name?.trim(); // Assuming name is required, trim whitespaces
-      const filters = req.query;
-
-      // Build the search query with a base for name matching
-      const searchQuery = { name: { $regex: nameQuery, $options: "i" } };
-
-      // Add optional filters using a loop for cleaner structure
-      const filterFields = [
-        "category",
-        "quality",
-        "language",
-        "year",
-        "country",
-      ];
-      for (const field of filterFields) {
-        if (filters[field]) {
-          searchQuery[field] = filters[field];
-        }
+  
+      // Validate required parameters (if applicable)
+      if (!nameQuery) {
+        return res.status(400).json({ message: "Missing required parameter: 'name'" });
       }
-
-      // Execute the search
-      const results = await Movie.find(searchQuery);
-
-      // Send successful response
-      res.json({ status: "success", results });
+  
+      // Sanitize user input (consider using a library like validator.js)
+  
+      // Build the search query with a base for name matching, using regular expression for case-insensitivity
+      const searchQuery = { slug: { $regex:nameQuery , $options: "i" } };
+  
+      // Add optional filters using destructuring for clarity and potential type checking
+      const { category, quality, language, year, country } = req.query;
+      if (category) searchQuery.category = category;
+      if (quality) searchQuery.quality = quality;
+      if (language) searchQuery.language = language;
+      if (year) {
+        // Validate year format (optional)
+        if (isNaN(year) || year.length !== 4) {
+          return res.status(400).json({ message: "Invalid year format. Use YYYY." });
+        }
+        searchQuery.year = year;
+      }
+      if (country) searchQuery.country = country;
+  
+      console.log(searchQuery); // For debugging
+  
+      // Execute the search with MongoDB's `find` method
+      const results = await MovieDetail.find(searchQuery);
+  
+      // Send successful response with informative status message
+      res.json({ status: "success", message: "Movies found successfully!", results });
     } catch (error) {
-      next(error);
+      console.error(error); // Log the error for debugging
+      next(error); // Pass the error to the error handler middleware
     }
   }
+  
 }
 
 module.exports = new Movies();
