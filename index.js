@@ -1,32 +1,34 @@
-const express = require("express");
-const methodOverride = require("method-override");
-const path = require("path");
-const morgan = require("morgan");
-const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const router = require("./router");
+const express = require('express');
+const methodOverride = require('method-override')
+const path = require('path')
+const mongoose = require('mongoose');
+const morgan = require('morgan')
+const cors = require('cors');
+const router = require('./router')
 require("dotenv").config();
+
 const app = express();
-const uri = process.env.PORT || 4000;
+const port = process.env.PORT || 4000; // Sử dụng PORT được cung cấp hoặc mặc định là 4000
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
+const uri = process.env.MONGODB_URI; // Sử dụng URI của MongoDB từ biến môi trường
 
-async function run() {
+
+mongoose.set('strictQuery', true)
+
+async function connect() {
   try {
-    await client.connect();
-    await client.db("sample_mflix").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    await client.close();
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("Connected to MongoDB successfully" );
+  } catch (error) {
+    console.error("Connection to MongoDB failed:", error.message);
+    process.exit(1); // Exit with failure
   }
 }
-run().catch(console.dir);
+
+connect();
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(morgan("combined"));
@@ -36,3 +38,8 @@ app.use(methodOverride("_method"));
 app.use(cors());
 
 router(app);
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+  console.log(uri)
+});
