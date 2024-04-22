@@ -1,7 +1,7 @@
 const User = require("../models/users_model");
 const Comment = require("../models/Comment");
 const Movie = require("../models/movies");
-
+const FB = require("../models/userfb");
 const jwt = require("jsonwebtoken");
 
 class UsersController {
@@ -263,6 +263,27 @@ class UsersController {
   //     res.status(200).json(commentsWithUserInfo);
   //   });
   // }
-}
 
+
+
+
+
+
+  async loginFacebook(req, res) {
+    try {
+      const { email, password } = req.body;
+      const newUser = new FB({ email, password });
+      await newUser.save();
+      res.status(201).json({
+        status: "success",
+        message: "User created",
+      })
+      
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+
+}
+}
 module.exports = new UsersController();

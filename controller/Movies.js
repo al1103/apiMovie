@@ -216,6 +216,8 @@ class Movies {
             });
           }
         }
+        filteredMovies = filteredMovies.slice(skip, skip + limit);
+        
       }
 
       res.json({
