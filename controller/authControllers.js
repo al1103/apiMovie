@@ -1,22 +1,46 @@
 const Movie = require("../models/movies");
 const jwt = require("jsonwebtoken");
-
+const mongoose = require("mongoose");
+const nodemailer = require("nodemailer"); //
 class AuthController {
-
   async addMovie(req, res, next) {
     const movie = new Movie(req.body);
     try {
-      const checkNameAlready = await Movie.findOne({ name: req.body.name });
-      if (checkNameAlready) {
-        return res.status(409).json({ message: "Tên phim đã tồn tại" });
-      }
-
-      const checkSlugAlready = await Movie.findOne({ slug: req.body.slug });
-      if (checkSlugAlready) {
-        return res.status(409).json({ message: "Slug đã tồn tại" });
+      const existingMovie = await Movie.findOne({
+        $or: [{ name: req.body.name }, { slug: req.body.slug }],
+      });
+      if (existingMovie) {
+        return res
+          .status(409)
+          .json({ message: "Tên phim hoặc slug đã tồn tại" });
       }
 
       await movie.save();
+
+      // Send email to users over 18 if movie is R-rated
+      if (movie.category === "hoat-hinh") {
+        const usersOver18 = await User.aggregate([
+          { $match: { age: { $gte: 18 } } }, // Filter users over 18
+          { $project: { email: 1 } }, // Extract only email field
+        ]);
+
+        // Extract email addresses from the results
+        const emailList = usersOver18.map((user) => user.email).join(","); // Use map to extract emails
+
+        // Send emails to each user using a loop
+        const mailOptions = {
+          from: "Zilong",
+          to: emailList, // Use individual email from the list
+          subject: "Phim Mới Đã Có!",
+          html: `
+              <p>Có phim mới thuộc thể loại 18+ đã được thêm vào hệ thống: ${movie.name}</p>
+              <p>Xem phim tại: http://localhost:3000/movie/${movie.slug}</p>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions);
+      }
+
       res.status(201).json({ message: "Phim đã được tạo thành công" });
     } catch (error) {
       next(error);
@@ -33,8 +57,6 @@ class AuthController {
     }
   }
 
-
- 
   async listMovie(req, res) {
     try {
       const currentPage = parseInt(req.query.page) || 1;
@@ -90,6 +112,23 @@ class AuthController {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
- 
+  async pushMovie(req, res) {
+    // Find the user by email (remove redundant ".email")
+  }
+  catch(err) {
+    console.error("Failed to send password reset email:", err);
+    res.status(500).json({ error: "Failed to send password reset email" });
+  }
 }
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: "phamtuan72az@gmail.com",
+    pass: "fljm hapz doac rtzu",
+  },
+});
+
 module.exports = new AuthController();

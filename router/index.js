@@ -1,6 +1,9 @@
 const Movie = require("./movie");
 const authRouter = require("./auth");
 const MovieDetail = require("./moviedetail");
+const usersRouter = require("./users");
+const syntheticRouter = require("./synthetic");
+
 
 const authenToken = require("../controller/middlewareToken");
 
@@ -16,8 +19,9 @@ function authorize(roles) {
 function routes(app) {
   app.use("/auth", authenToken,  authorize(["admin"]) , authRouter);
   app.use("/movie", MovieDetail);
+  app.use("/users",  usersRouter);
+  app.use("/synthetic",  syntheticRouter);
   app.use("/",   Movie);
-
 
   
 }
