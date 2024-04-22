@@ -1,7 +1,5 @@
 const Movie = require("../models/movies");
 const MovieDetail = require("../models/moviedetails");
-const { text } = require("express");
-const e = require("express");
 
 class Movies {
   async getAllMovies(req, res, next) {
@@ -46,13 +44,14 @@ class Movies {
 
   async SearchMovie(req, res, next) {
     try {
-      const nameQuery = req.query.name ? req.query.name.trim() : ""; // Trim whitespace
-      if (!nameQuery) {
-        return res.status(400).json({ message: "Invalid search query" });
-      }
-      
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      const nameQuery = req.query.name ? req.query.name.trim() : "";
+      const searchQuery = { slug: { $regex: nameQuery, $options: "i" } };
+      const count = await MovieDetail.countDocuments(searchQuery);
+      const totalPages = Math.ceil(count / limit);
 
-      let movies = await MovieDetail.find(nameQuery);
       const categoryMap = {
         "hoat-hinh": "Hoạt Hình",
         "hanh-dong": "Hành Động",
@@ -93,93 +92,28 @@ class Movies {
         });
       }
       var result = [];
-
-      var filteredMovies = movies;
-
-      if (req.query.category) {
-        const categoryArray = req.query.category.split(",");
-
-        // Lọc phim theo category
-        filteredMovies = filteredMovies.filter((movie) => {
-          let shouldInclude = false;
-
-          if (movie.category) {
-            const movieCategoryArray = Object.values(movie.category);
-
-            movieCategoryArray.forEach((category) => {
-              Object.entries(category).reduce((acc, [type, value]) => {
-                if (type === "list") {
-                  const modifiedCategories = value.map((obj) => obj.name);
-
-                  if (
-                    modifiedCategories !== undefined &&
-                    modifiedCategories.length > 0
-                  ) {
-                    result.push(modifiedCategories);
-
-                    // Kiểm tra nếu có ít nhất một phần tử trong categoryArray tồn tại trong modifiedCategories
-                    if (
-                      categoryArray.some((element) =>
-                        modifiedCategories.includes(element)
-                      )
-                    ) {
-                      shouldInclude = true;
-                    }
-                  }
-                }
-              }, {});
-            });
-          }
-
-          return shouldInclude;
+      if (
+        Object.keys(req.query).length === 1 &&
+        req.query.hasOwnProperty("name")
+      ) {
+        const movies = await MovieDetail.find(searchQuery).skip(skip).limit(10);
+        res.json({
+          length: movies.length,
+          status: "success",
+          results: movies,
         });
-      }
+      } else {
+        const movies = await MovieDetail.find(searchQuery);
 
-      if (req.query.year) {
-        const yearArray = req.query.year.split(",");
-
-        // Lọc phim theo year
-        filteredMovies = filteredMovies.filter((movie) => {
-          let shouldInclude = false;
-
-          if (movie.category) {
-            const movieCategoryArray = Object.values(movie.category);
-
-            movieCategoryArray.forEach((category) => {
-              Object.entries(category).reduce((acc, [type, value]) => {
-                if (type === "list") {
-                  const modifiedCategories = value.map((obj) => obj.name);
-
-                  if (
-                    modifiedCategories !== undefined &&
-                    modifiedCategories.length > 0
-                  ) {
-                    result.push(modifiedCategories);
-
-                    // Kiểm tra nếu có ít nhất một phần tử trong yearArray tồn tại trong modifiedCategories
-                    if (
-                      yearArray.some((element) =>
-                        modifiedCategories.includes(element)
-                      )
-                    ) {
-                      shouldInclude = true;
-                    }
-                  }
-                }
-              }, {});
-            });
-          }
-
-          return shouldInclude;
-        });
-        if (req.query.country) {
-          const countryArray = req.query.country.split(",");
-
+        var filteredMovies = movies;
+        if (req.query.category) {
+          const categoryArray = req.query.category.split(",");
           filteredMovies = filteredMovies.filter((movie) => {
             let shouldInclude = false;
 
             if (movie.category) {
-              const movieCategoryArray = Object.values(movie.category);
+              const MovieCategory = movie.category;
+              const movieCategoryArray = Object.values(MovieCategory);
 
               movieCategoryArray.forEach((category) => {
                 Object.entries(category).reduce((acc, [type, value]) => {
@@ -192,9 +126,8 @@ class Movies {
                     ) {
                       result.push(modifiedCategories);
 
-                      // Kiểm tra nếu có ít nhất một phần tử trong yearArray tồn tại trong modifiedCategories
                       if (
-                        countryArray.some((element) =>
+                        categoryArray.some((element) =>
                           modifiedCategories.includes(element)
                         )
                       ) {
@@ -209,12 +142,86 @@ class Movies {
             return shouldInclude;
           });
         }
+
+        if (req.query.year) {
+          const yearArray = req.query.year.split(",");
+
+          filteredMovies = filteredMovies.filter((movie) => {
+            let shouldInclude = false;
+            console.log(movie.category);
+            if (movie.category) {
+              const movieCategoryArray = Object.values(movie.category);
+
+              movieCategoryArray.forEach((category) => {
+                Object.entries(category).reduce((acc, [type, value]) => {
+                  if (type === "list") {
+                    const modifiedCategories = value.map((obj) => obj.name);
+                    console.log(value);
+                    if (
+                      modifiedCategories !== undefined &&
+                      modifiedCategories.length > 0
+                    ) {
+                      result.push(modifiedCategories);
+                      console.log(modifiedCategories);
+                      if (
+                        yearArray.some((element) =>
+                          modifiedCategories.includes(element)
+                        )
+                      ) {
+                        shouldInclude = true;
+                      }
+                    }
+                  }
+                }, {});
+              });
+            }
+
+            return shouldInclude;
+          });
+          if (req.query.country) {
+            const countryArray = req.query.country.split(",");
+
+            filteredMovies = filteredMovies.filter((movie) => {
+              let shouldInclude = false;
+
+              if (movie.category) {
+                const movieCategoryArray = Object.values(movie.category);
+
+                movieCategoryArray.forEach((category) => {
+                  Object.entries(category).reduce((acc, [type, value]) => {
+                    if (type === "list") {
+                      const modifiedCategories = value.map((obj) => obj.name);
+
+                      if (
+                        modifiedCategories !== undefined &&
+                        modifiedCategories.length > 0
+                      ) {
+                        result.push(modifiedCategories);
+
+                        // Kiểm tra nếu có ít nhất một phần tử trong yearArray tồn tại trong modifiedCategories
+                        if (
+                          countryArray.some((element) =>
+                            modifiedCategories.includes(element)
+                          )
+                        ) {
+                          shouldInclude = true;
+                        }
+                      }
+                    }
+                  }, {});
+                });
+              }
+
+              return shouldInclude;
+            });
+          }
+        }
       }
 
       res.json({
+        length: filteredMovies.length,
         status: "success",
-        results: movies,
-        // filters: updatedQuery,
+        results: filteredMovies,
       });
     } catch (error) {
       next(error);

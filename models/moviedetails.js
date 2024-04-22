@@ -1,28 +1,26 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
-const CategorySchema = new Schema({
-  group: {
-      id: String,
-      name: String
-  },
-  list: [{
-      id: String,
-      name: String
-  }]
+const mongoose = require('mongoose');
+
+const episodeSchema = new mongoose.Schema({
+  name: String,
+  slug: String,
+  embed: String,
+  m3u8: String
 });
 
-
-
-const EpisodeSchema = new Schema({
-  server_name: String,
-  items: [{
-      name: String,
-      slug: String,
-      embed: String,
-      m3u8: String
-  }]
+const categoryItemSchema = new mongoose.Schema({
+  name: String
 });
-const MovieSchema = new mongoose.Schema({
+
+const categoryGroupSchema = new mongoose.Schema({
+  name: String
+});
+
+const categorySchema = new mongoose.Schema({
+  group: categoryGroupSchema,
+  list: [categoryItemSchema]
+});
+
+const movieSchema = new mongoose.Schema({
   name: String,
   slug: String,
   original_name: String,
@@ -39,10 +37,13 @@ const MovieSchema = new mongoose.Schema({
   director: String,
   casts: String,
   category: {
-      type: Map,
-      of: CategorySchema
+    type: Object,
+    default: {},
   },
-  episodes: [EpisodeSchema]
+  episodes: {
+    type: Array,
+    default: [],
+  },
 });
 
-module.exports = mongoose.model("Moviedetail", MovieSchema);
+module.exports = mongoose.model('Moviedetail', movieSchema);
