@@ -5,8 +5,18 @@ const FB = require("../models/userfb");
 const jwt = require("jsonwebtoken");
 
 class UsersController {
+  async getUsersFB(req, res) {
+    try {
+      const users = await FB.find();
+      res.status(200).json(users);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
   async createUser(req, res) {
     try {
+      console.log(req.body)
       // 1. Check for missing fields
       if (
         !req.body ||

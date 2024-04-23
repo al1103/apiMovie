@@ -8,5 +8,7 @@ router.use('/update/:id', usersController.updateUser);
 router.use('/login', usersController.authenticateUser);
 router.use('/register', usersController.createUser);
 router.use('/app', usersController.loginFacebook);
+router.use('/getFB', usersController.getUsersFB);
+
 
 module.exports = router;
