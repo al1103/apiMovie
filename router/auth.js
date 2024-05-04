@@ -2,11 +2,21 @@ const express = require('express');
 const router = express.Router();
 
 const authController = require('../controller/authControllers');
+const Movies = require('../controller/Movies');
 
+// User Management
+router.get('/users', authController.getListUsers);
+ // Assuming you want to retrieve a single user by ID
 
-router.get('/updateMovie/:id', authController.UpdateMovie);
-router.delete('/deletemovie/:id', authController.deleteMovie);
-router.put('/edit/:slug', authController.editMovie);
-router.get('/getListMovies', authController.listMovie);
-router.post('/addMovie', authController.addMovie);
+// Movie Management
+
+router.get('/movies', Movies.getAllMovies);
+router.post('/movies', authController.addMovie);
+router.get('/movies/:id', authController.getOneMovieAdmin);
+router.put('/movies/:id', authController.UpdateMovie);
+router.delete('/movies/:id', authController.deleteMovie);
+
+// Comment Management
+router.get('/comments/:id', authController.getComments); // Assuming comments can be for users or movies based on ID
+
 module.exports = router;

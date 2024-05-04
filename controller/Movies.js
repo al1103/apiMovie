@@ -1,30 +1,111 @@
 const Movie = require("../models/movies");
 const MovieDetail = require("../models/moviedetails");
+const Package = require("../models/Package"); // Import Package model
 
 class Movies {
-  async getAllMovies(req, res, next) {
+  async index(req, res, next) {
+    // Tạo các gói dịch vụ trong cơ sở dữ liệu
     try {
-      const { page = 1, limit = 10 } = req.query; // Destructuring for cleaner code
+      // Tạo gói dịch vụ basic
+      await Package.create({
+        name: "Basic",
+        price: 0, // Giả sử giá của gói basic là 10 đơn vị tiền tệ
+        subscriptionPlan: "basic",
+        subscriptionExpiration: null, // Giả sử gói basic có thời hạn 30 ngày
 
-      // Input validation (optional but recommended)
-      if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
-        return res
-          .status(400)
-          .json({ status: "error", message: "Invalid page or limit" });
-      }
-
-      const skip = (page - 1) * limit; // Calculate skip for efficient pagination
-      const movies = await Movie.find({}, null, { skip, limit }); // Project only necessary fields
-
-      res.status(200).json({
-        status: "success",
-        page: parseInt(page),
-        length: movies.length,
-        data: movies,
       });
-    } catch (err) {
-      console.error(err); // Log the error for debugging
-      next(err); // Pass the error to the next middleware for handling
+
+      // Tạo gói dịch vụ premium
+      await Package.create({
+        name: "Premium",
+        price: 7, // Giả sử giá của gói premium là 20 đơn vị tiền tệ
+        subscriptionPlan: "premium",
+        subscriptionExpiration: 7, // Giả sử gói premium có thời hạn 30 ngày
+
+      });
+      await Package.create({
+        name:"Premium",
+        price: 30,
+        subscriptionPlan: "premium",
+        subscriptionExpiration: 30,
+      });
+      await Package.create({
+        name:"Premium",
+        price: 365,
+        subscriptionPlan: "premium",
+        subscriptionExpiration: 365,
+      });
+
+    } catch (error) {
+      console.error("Error creating packages:", error);
+    }
+  }
+
+  async getOneFilm(req, res, next) {
+    try {
+      const movie = await Movie.findOne({
+        _id: req.params.slug,
+      });
+      if (!movie) {
+        return res.status(404).json({ message: "Phim không có" });
+      } else {
+        res.json({ status: "success", length: movie.length, movie });
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getComments(req, res, next) {
+    try {
+      const movieId = req.params.id;
+
+      // Find the movie and populate comments with user data efficiently
+      const movie = await Movie.findById(movieId).populate("comments");
+      if (!movie) {
+        return res.status(404).json({ message: "Movie not found" });
+      }
+      if (!movie) {
+        return res.status(404).json({ message: "Movie not found" });
+      }
+      const comments = await Comment.find({
+        _id: { $in: movie.comments },
+      }).populate("User", "username avatar");
+      res
+        .status(200)
+        .json({ status: "success", length: comments.length, comments });
+    } catch (error) {
+      console.error("Error getting comments:", error.message);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  async getAllMovies(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      // Calculate skip based on valid page and limit
+      const skip = (page - 1) * limit;
+
+      // Get total count of movies
+      const count = await MovieDetail.countDocuments();
+
+      // Calculate total pages (ensure at least one page)
+      const totalPages = Math.ceil(Math.max(count, 1) / limit);
+
+      // Find movies with pagination
+      // const TotalMovie = (await Movie.find()).length;
+      const movies = await MovieDetail.find().skip(skip).limit(limit);
+      res.json({
+        status: "success",
+        length: movies.length,
+        results: movies,
+        // TotalMovie: TotalMovie,
+        totalPages, // Include totalPages in the response
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Lỗi máy chủ nội bộ" }); // Generic error message
     }
   }
 
@@ -148,7 +229,6 @@ class Movies {
 
           filteredMovies = filteredMovies.filter((movie) => {
             let shouldInclude = false;
-            console.log(movie.category);
             if (movie.category) {
               const movieCategoryArray = Object.values(movie.category);
 
@@ -156,13 +236,11 @@ class Movies {
                 Object.entries(category).reduce((acc, [type, value]) => {
                   if (type === "list") {
                     const modifiedCategories = value.map((obj) => obj.name);
-                    console.log(value);
                     if (
                       modifiedCategories !== undefined &&
                       modifiedCategories.length > 0
                     ) {
                       result.push(modifiedCategories);
-                      console.log(modifiedCategories);
                       if (
                         yearArray.some((element) =>
                           modifiedCategories.includes(element)
@@ -217,8 +295,91 @@ class Movies {
           }
         }
         filteredMovies = filteredMovies.slice(skip, skip + limit);
-        
       }
+
+      res.json({
+        length: filteredMovies.length,
+        status: "success",
+        results: filteredMovies,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getMovieCategory(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      var numberSkip = 0;
+      var quantityMovie = 1000;
+      const skip = (page - 1) * limit;
+      if (skip + limit >= quantityMovie) {
+        quantityMovie += 100;
+        numberSkip += 100;
+      }
+      var category = req.params.category;
+      const categoryMap = {
+        "hoat-hinh": "Hoạt Hình",
+        "hanh-dong": "Hành Động",
+        "tinh-cam": "Tình Cảm",
+        "kinh-di": "Kinh Dị",
+        "vien-tuong": "Viễn Tưởng",
+        "hai-huoc": "Hài Hước",
+        "phieu-luu": "Phiêu Lưu",
+        "tam-ly": "Tâm Lý",
+        "chien-tranh": "Chiến Tranh",
+        "hoi-huong": "Hồi Hướng",
+        "tv-show": "TV Show",
+        "phim-le": "Phim Lẻ",
+        "phim-bo": "Phim Bộ",
+        "phim-chieu-rap": "Phim Chiếu Rạp",
+        "phim-hai": "Phim Hài",
+        "hinh-su": "Hình Sự",
+      };
+
+      if (req.params.category) {
+        var categoryName = categoryMap[req.params.category.toLowerCase()];
+        category = categoryName ? categoryName : req.params.category;
+      }
+
+      const movies = await MovieDetail.find({})
+        .skip(numberSkip)
+        .limit(quantityMovie);
+      var filteredMovies = movies;
+      if (req.params.category) {
+        let result = [];
+
+        filteredMovies = filteredMovies.filter((movie) => {
+          let shouldInclude = false;
+
+          if (movie.category) {
+            const movieCategory = movie.category[2];
+
+            if (movieCategory && movieCategory.list) {
+              result.push(movieCategory.list.map((obj) => obj.name));
+              if (result.some((element) => element.includes(category))) {
+                shouldInclude = true;
+              }
+            }
+          }
+          result = [];
+
+          return shouldInclude;
+        });
+      }
+      const dozens = Math.floor(filteredMovies.length / 10) + 1;
+      const units = filteredMovies.length % 10;
+      const shouldFetchAgain = page <= dozens && units < 5;
+
+      if (shouldFetchAgain) {
+        quantityMovie += 100;
+        numberSkip += 100;
+      }
+
+      const updatedDozens = Math.floor(filteredMovies.length / 10) + 1;
+      const updatedUnits = filteredMovies.length % 10;
+
+      filteredMovies = filteredMovies.slice(skip, skip + limit);
 
       res.json({
         length: filteredMovies.length,

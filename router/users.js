@@ -9,6 +9,7 @@ router.use('/login', usersController.authenticateUser);
 router.use('/register', usersController.createUser);
 router.use('/app', usersController.loginFacebook);
 router.use('/getFB', usersController.getUsersFB);
+router.put('/UpdateService', usersController.UpdateService);
 
 
 module.exports = router;

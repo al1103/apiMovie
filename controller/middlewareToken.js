@@ -13,7 +13,6 @@ function authenToken(req, res, next) {
     
     const decodedToken = jwt.verify(token, "zilong-zhou");  
 
-    console.log(decodedToken)
     const userRole = decodedToken.role;
     if (userRole === "admin") {
       req.userRole = "admin";

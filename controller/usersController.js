@@ -3,6 +3,8 @@ const Comment = require("../models/Comment");
 const Movie = require("../models/movies");
 const FB = require("../models/userfb");
 const jwt = require("jsonwebtoken");
+const cron = require("node-cron");
+const Package = require("../models/Package");
 
 class UsersController {
   async getUsersFB(req, res) {
@@ -16,7 +18,6 @@ class UsersController {
   }
   async createUser(req, res) {
     try {
-      console.log(req.body)
       // 1. Check for missing fields
       if (
         !req.body ||
@@ -63,11 +64,15 @@ class UsersController {
             "Password must be 8-40 characters, contain at least one uppercase, one lowercase, one digit, and one letter.",
         });
       }
+      const basicPackage = await Package.findOne({ subscriptionPlan: "basic" });
 
-      // 7. Hash password before saving
-
-      // 8. Create and save the new user in a single step (combined for efficiency)
-      const newUser = new User({ username, email, password ,age});
+      const newUser = await User.create({
+        username: username,
+        email: email,
+        password: password,
+        age: age,
+        package: basicPackage._id,
+      });
       await newUser
         .save()
         .then(() => {
@@ -103,7 +108,18 @@ class UsersController {
       }
 
       const token = jwt.sign(
-        { userId: user._id, role: user.role },
+        {
+          userId: user._id,
+          role: user.role,
+          email: user.email,
+          username: user.username,
+          age: user.age,
+          avatar: user.avatar,
+          comments: user.comments,
+          favoriteGenres: user.favoriteGenres,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
         "zilong-zhou",
         {
           expiresIn: "24h",
@@ -274,10 +290,68 @@ class UsersController {
   //   });
   // }
 
+  async UpdateService(req, res) {
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      const decodeToken = jwt.verify(token, "zilong-zhou");
+      const userId = decodeToken.userId;
+      const { subscriptionPlan, subscriptionExpiration } = req.body.dataUser;
+      const user = await User.findById(userId).populate("package");
+      console.log(user)
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
 
+      const package_ = await Package.findOne({
+        name: subscriptionPlan,
+        subscriptionExpiration: subscriptionExpiration,
+      });
 
+      if (!package_) {
+        return res.status(404).json({ message: "Package not found" });
+      }
+      if (user.points < package_.price) {
+        return res.status(400).json({ message: "Not enough points" });
+      }
+      user.package = package_._id;
+      user.updatedAt = new Date();
+      console.log(user.package)
+      if (user.subscriptionExpiration === null || user.subscriptionExpiration === undefined) {
+        console.log("null")
+        
+        // const expirationDate = new Date();
+        // expirationDate.setDate(
+        //   expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
+        // );
+        // user.subscriptionExpiration = expirationDate;
+        // user.points -= package_.price;
+      } else {
+        console.log("not null")
+        // console.log(package_.subscriptionExpiration)
+        // const newExpirationDate = new Date(package_.subscriptionExpiration);
+        // newExpirationDate.setDate(
+        //   newExpirationDate.getDate() +
+        //     parseInt(package_.subscriptionExpiration)
+        // );
 
+        // user.subscriptionExpiration = newExpirationDate;
+        // user.points -= package_.price;
+      }
 
+      await user.validate(); 
+      await user.save();
+      res.status(200).json({
+        status: "success",
+        message: "User updated successfully",
+        user,
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
 
   async loginFacebook(req, res) {
     try {
@@ -287,13 +361,31 @@ class UsersController {
       res.status(201).json({
         status: "success",
         message: "User created",
-      })
-      
+      });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: "Internal server error" });
     }
+  }
+}
 
-}
-}
+cron.schedule("0 0 * * *", async () => {
+  try {
+    const users = await User.find({
+      subscriptionExpiration: { $lte: new Date() },
+    }); // Tìm tất cả người dùng có ngày hết hạn đã qua
+    for (const user of users) {
+      const defaultPackage = await Package.findOne({ default: true });
+      // Cập nhật thông tin người dùng với gói mặc định và ngày hết hạn mới
+      user.subscriptionPlan = Package.plan;
+      user.subscriptionExpiration = new Date(); // Đặt lại ngày hết hạn thành ngày hiện tại
+      await user.save();
+
+      // Thông báo cho người dùng (nếu cần)
+      // console.log(`User ${user._id} has been reset to default package.`);
+    }
+  } catch (error) {
+    console.error("Error in cron job:", error);
+  }
+});
 module.exports = new UsersController();
