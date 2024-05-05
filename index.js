@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const morgan = require('morgan')
 const cors = require('cors');
 const router = require('./router')
+const bodyParser = require('body-parser');
 require("dotenv").config();
 
 const app = express();
@@ -33,6 +34,8 @@ connect();
 app.use(express.static(path.join(__dirname, "public")));
 app.use(morgan("combined"));
 app.use(express.urlencoded({ extended: true }));
+
+app.use(bodyParser.json());
 app.use(express.json());
 app.use(methodOverride("_method"));
 app.use(cors());

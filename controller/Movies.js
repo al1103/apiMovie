@@ -387,6 +387,28 @@ class Movies {
       next(error);
     }
   }
+  async latestMovies(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      const count = await MovieDetail.countDocuments();
+      const totalPages = Math.ceil(count / limit);
+      const movies = await MovieDetail.find()
+        .sort({ modified: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      res.json({
+        status: "success",
+        length: movies.length,
+        results: movies,
+        totalPages,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new Movies();

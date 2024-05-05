@@ -5,7 +5,6 @@ class MovieDetailController {
     try {
       const slug = req.params.slug;
 
-      // Assuming MovieDetailService.findOne returns a Promise
       const movieDetail = await MovieDetailService.find({ slug: slug });
 
       if (!movieDetail) {

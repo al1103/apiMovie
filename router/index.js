@@ -4,6 +4,7 @@ const MovieDetail = require("./moviedetail");
 const usersRouter = require("./users");
 const syntheticRouter = require("./synthetic");
 const Pay = require("./pay");
+const bodyParser = require('body-parser');
 
 const authenToken = require("../controller/middlewareToken");
 

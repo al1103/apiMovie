@@ -2,7 +2,7 @@
 const axios = require("axios").default; // npm install axios
 const CryptoJS = require("crypto-js"); // npm install crypto-js
 const moment = require("moment"); // npm install moment
-
+const qs = require("qs"); // npm install qs
 // APP INFO
 const config = {
   app_id: "2554",
@@ -10,6 +10,15 @@ const config = {
   key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
   endpoint: "https://sb-openapi.zalopay.vn/v2/create",
 };
+const config2 = {
+  key2: "eG4r0GcoNtRGbO8"
+};
+const config3 = {
+  endpoint: "https://sb-openapi.zalopay.vn/v2/create",
+  key2: "eG4r0GcoNtRGbO8"
+};
+
+
 class ZaloPay {
   async createOrder(req, res) {
     const amount = req.body.datas.pointsPay;
@@ -55,9 +64,59 @@ class ZaloPay {
     const response = await axios.post(config.endpoint, null, { params: order });
     res.json(response.data);
   }
-  catch(error) {
-    console.log(error);
-    res.status(500).json({ error: "Internal Server Error" });
+
+  async callback(req, res) {
+    let dataStr = req.body.data;
+    let reqMac = req.body.mac;
+
+    let mac = CryptoJS.HmacSHA256(dataStr, config2.key2).toString();
+    console.log("mac =", mac);
+
+    let result = {}; // Define result object
+    if (reqMac !== mac) {
+      result.return_code = -1;
+      result.return_message = "mac not equal";
+    } else {
+      let dataJson = JSON.parse(dataStr);
+      console.log(
+        "update order's status = success where app_trans_id =",
+        dataJson["app_trans_id"]
+      );
+
+      result.return_code = 1;
+      result.return_message = "success";
+    }
+    res.json(result);
+  }
+
+  async getOrderByID(req, res) {
+    let postData = {
+      app_id: config.app_id,
+      app_trans_id: "<app_trans_id>", // Input your app_trans_id
+    };
+
+    let data =
+      postData.app_id + "|" + postData.app_trans_id + "|" + config.key1; // appid|app_trans_id|key1
+    postData.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
+
+    let postConfig = {
+      method: "post",
+      url: config3.endpoint,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: qs.stringify(postData),
+    };
+
+    axios(postConfig)
+      .then(function (response) {
+        console.log(JSON.stringify(response.data));
+        res.json(response.data);
+      })
+      .catch(function (error) {
+        console.log(error);
+        res.status(500).send("Error occurred");
+      });
   }
 }
 
