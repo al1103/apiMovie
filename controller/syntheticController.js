@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 
 class syntheticController {
   async getUser(req, res) {
+    
     try {
       const user = await User.findOne({ _id: req.params.id }).populate(
         "package"

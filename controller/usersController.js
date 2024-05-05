@@ -140,7 +140,6 @@ class UsersController {
       return res.status(500).json({ error: "Internal server error" });
     }
   }
-
   async postComment(req, res) {
     try {
       const token = req.headers.authorization.split(" ")[1];
@@ -192,6 +191,7 @@ class UsersController {
   async updateUser(req, res) {
     try {
       const userId = req.params.id;
+      
 
       const { username, email, password, role, age } = req.body.dataUser;
       const user = await User.findByIdAndUpdate({ _id: userId });
