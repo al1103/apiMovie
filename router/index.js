@@ -21,8 +21,8 @@ function routes(app) {
   app.use("/movie", MovieDetail);
   app.use("/users", usersRouter);
   app.use("/synthetic", syntheticRouter);
-  app.use("/", Movie);
   app.use("/Pay", Pay);
+  app.use("/", Movie);
 }
 
 module.exports = routes;
