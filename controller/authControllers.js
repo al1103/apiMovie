@@ -121,8 +121,6 @@ class AuthController {
     }
   }
 
-  
-
   async getComments(req, res) {
     try {
       const user = await User.findOne({ _id: req.params.id }).populate(

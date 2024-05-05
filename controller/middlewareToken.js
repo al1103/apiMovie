@@ -1,5 +1,4 @@
-const jwt = require('jsonwebtoken');
-
+const jwt = require("jsonwebtoken");
 
 function authenToken(req, res, next) {
   const authorizationHeader = req.headers["authorization"];
@@ -10,8 +9,7 @@ function authenToken(req, res, next) {
     return res.status(401).json({ error: "Invalid Token" });
   }
   try {
-    
-    const decodedToken = jwt.verify(token, "zilong-zhou");  
+    const decodedToken = jwt.verify(token, "zilong-zhou");
 
     const userRole = decodedToken.role;
     if (userRole === "admin") {

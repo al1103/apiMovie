@@ -4,7 +4,8 @@ const Movie = require("../models/movies");
 const FB = require("../models/userfb");
 const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
-const Package = require("../models/Package");
+const Package = require("../models/PackageDefault");
+const PackageUser = require("../models/PackageUser");
 
 class UsersController {
   async getUsersFB(req, res) {
@@ -18,7 +19,6 @@ class UsersController {
   }
   async createUser(req, res) {
     try {
-      // 1. Check for missing fields
       if (
         !req.body ||
         !req.body.username ||
@@ -32,10 +32,8 @@ class UsersController {
         });
       }
 
-      // 2. Extract user data
       const { username, email, password, age } = req.body;
 
-      // 3. Validate email format
       const emailRegex = /^\w+@[a-zA-Z\d\-.]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
@@ -296,57 +294,78 @@ class UsersController {
       const decodeToken = jwt.verify(token, "zilong-zhou");
       const userId = decodeToken.userId;
       const { subscriptionPlan, subscriptionExpiration } = req.body.dataUser;
-      const user = await User.findById(userId).populate("package");
-      console.log(user)
-      if (!user) {
-        return res.status(404).json({
-          message: "User not found",
+
+      try {
+        const user = await User.findById(userId).populate("package");
+        if (!user) {
+          return res.status(404).json({
+            message: "User not found",
+          });
+        }
+
+        const package_ = await Package.findOne({
+          name: subscriptionPlan,
+          subscriptionExpiration: subscriptionExpiration,
         });
-      }
 
-      const package_ = await Package.findOne({
-        name: subscriptionPlan,
-        subscriptionExpiration: subscriptionExpiration,
-      });
+        if (!package_) {
+          return res.status(404).json({ message: "Package not found" });
+        }
 
-      if (!package_) {
-        return res.status(404).json({ message: "Package not found" });
-      }
-      if (user.points < package_.price) {
-        return res.status(400).json({ message: "Not enough points" });
-      }
-      user.package = package_._id;
-      user.updatedAt = new Date();
-      console.log(user.package)
-      if (user.subscriptionExpiration === null || user.subscriptionExpiration === undefined) {
-        console.log("null")
-        
-        // const expirationDate = new Date();
-        // expirationDate.setDate(
-        //   expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
-        // );
-        // user.subscriptionExpiration = expirationDate;
-        // user.points -= package_.price;
-      } else {
-        console.log("not null")
-        // console.log(package_.subscriptionExpiration)
-        // const newExpirationDate = new Date(package_.subscriptionExpiration);
-        // newExpirationDate.setDate(
-        //   newExpirationDate.getDate() +
-        //     parseInt(package_.subscriptionExpiration)
-        // );
+        if (user.points < package_.price) {
+          return res.status(400).json({ message: "Not enough points" });
+        }
 
-        // user.subscriptionExpiration = newExpirationDate;
-        // user.points -= package_.price;
-      }
+        const CheckUserPackage = await PackageUser.findOne({
+          userId: user._id,
+        });
+        if (!CheckUserPackage) {
+          console.log("--------------------");
+          const expirationDate = new Date();
+          expirationDate.setDate(
+            expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
+          );
 
-      await user.validate(); 
-      await user.save();
-      res.status(200).json({
-        status: "success",
-        message: "User updated successfully",
-        user,
-      });
+          user.subscriptionExpiration = expirationDate;
+          const newPackageUser = new PackageUser({
+            userId: user._id,
+            name: package_.name,
+            subscriptionPlan: package_.subscriptionPlan,
+            subscriptionExpiration: expirationDate,
+          });
+
+          await newPackageUser.save();
+          user.points -= package_.price;
+        } else {
+          const newExpirationDate = new Date(
+            CheckUserPackage.subscriptionExpiration
+          );
+          newExpirationDate.setDate(
+            newExpirationDate.getDate() +
+              parseInt(package_.subscriptionExpiration)
+          );
+
+          const PackageUserUpdate = await PackageUser.findOneAndUpdate(
+            { userId: user._id },
+            { subscriptionExpiration: newExpirationDate }, // Update only the subscription expiration
+            { new: true } // Set to true to return the modified document
+          );
+
+          console.log("New expiration date:", newExpirationDate);
+          await PackageUserUpdate.save();
+          user.points -= package_.price;
+        }
+
+        await user.validate();
+        await user.save();
+
+        return res
+          .status(200)
+          .json({ status: "success", message: "Subscription successful" });
+      } catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+      }
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -365,6 +384,27 @@ class UsersController {
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async ApplyCode(req, res) {
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      const decodeToken = jwt.verify(token, "zilong-zhou");
+      const userId = decodeToken.userId;
+      const code = req.body.code;
+      if (code == 111) {
+        const user = await User.findOne({ _id: userId });
+        user.points += 100;
+        await user.save();
+      }
+
+      res.status(200).json({
+        return_code: 1,
+        status: "success",
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 }

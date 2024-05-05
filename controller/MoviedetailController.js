@@ -1,4 +1,4 @@
-const MovieDetailService = require('../models/moviedetails'); // Assuming MovieDetailService is a function
+const MovieDetailService = require("../models/moviedetails"); // Assuming MovieDetailService is a function
 
 class MovieDetailController {
   async getOneMovie(req, res) {
@@ -6,10 +6,10 @@ class MovieDetailController {
       const slug = req.params.slug;
 
       // Assuming MovieDetailService.findOne returns a Promise
-      const movieDetail = await MovieDetailService.find({slug:slug});
+      const movieDetail = await MovieDetailService.find({ slug: slug });
 
       if (!movieDetail) {
-        return res.status(404).json({ message: 'Movie not found' }); // Handle not found case
+        return res.status(404).json({ message: "Movie not found" }); // Handle not found case
       }
 
       res.status(200).json(movieDetail);
@@ -19,4 +19,4 @@ class MovieDetailController {
   }
 }
 
-module.exports = new MovieDetailController();  // Use module.exports for multiple exports
+module.exports = new MovieDetailController(); // Use module.exports for multiple exports

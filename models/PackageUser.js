@@ -3,15 +3,14 @@
 const mongoose = require("mongoose");
 
 const packageSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   name: { type: String, required: true },
-  price: { type: Number, required: true },
   subscriptionPlan: {
     type: String,
-    default: "basic",
     enum: ["basic", "premium"],
   },
   subscriptionExpiration: {
-    type: Number,
+    type: Date,
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

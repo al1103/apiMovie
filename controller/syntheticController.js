@@ -5,7 +5,9 @@ const nodemailer = require("nodemailer");
 class syntheticController {
   async getUser(req, res) {
     try {
-      const user = await User.findOne({ _id: req.params.id }).populate("package");
+      const user = await User.findOne({ _id: req.params.id }).populate(
+        "package"
+      );
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -114,11 +116,13 @@ class syntheticController {
     try {
       const _id = req.params.id;
       const { password, newPassword } = req.body.dataUser;
-      console.log(password, newPassword)
+      console.log(password, newPassword);
       const user = await User.findOne({ _id });
-    
+
       if (!user) {
-        return res.status(401).json("Người dùng không tồn tại hoặc không có quyền truy cập");
+        return res
+          .status(401)
+          .json("Người dùng không tồn tại hoặc không có quyền truy cập");
       }
       // console.log(user.password, password, newPassword)
       if (newPassword) {
@@ -128,15 +132,19 @@ class syntheticController {
         }
         user.password = newPassword;
       }
-    
+
       const result = await User.updateOne({ _id }, user);
-    
+
       if (result.nModified === 0) {
-        return res.status(404).json({ message: "Không tìm thấy người dùng hoặc không có sự thay đổi" });
+        return res
+          .status(404)
+          .json({
+            message: "Không tìm thấy người dùng hoặc không có sự thay đổi",
+          });
       }
-    
+
       await user.save();
-    
+
       const token = jwt.sign(
         { userId: user._id, role: user.role },
         "zilong-zhou",
@@ -144,7 +152,7 @@ class syntheticController {
           expiresIn: "24h",
         }
       );
-    
+
       res.status(200).json({
         status: "success",
         token: token,
@@ -153,7 +161,6 @@ class syntheticController {
     } catch (error) {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
-    
   }
 }
 

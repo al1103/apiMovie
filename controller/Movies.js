@@ -1,6 +1,6 @@
 const Movie = require("../models/movies");
 const MovieDetail = require("../models/moviedetails");
-const Package = require("../models/Package"); // Import Package model
+const Package = require("../models/PackageDefault"); // Import Package model
 
 class Movies {
   async index(req, res, next) {
@@ -12,7 +12,6 @@ class Movies {
         price: 0, // Giả sử giá của gói basic là 10 đơn vị tiền tệ
         subscriptionPlan: "basic",
         subscriptionExpiration: null, // Giả sử gói basic có thời hạn 30 ngày
-
       });
 
       // Tạo gói dịch vụ premium
@@ -21,21 +20,19 @@ class Movies {
         price: 7, // Giả sử giá của gói premium là 20 đơn vị tiền tệ
         subscriptionPlan: "premium",
         subscriptionExpiration: 7, // Giả sử gói premium có thời hạn 30 ngày
-
       });
       await Package.create({
-        name:"Premium",
+        name: "Premium",
         price: 30,
         subscriptionPlan: "premium",
         subscriptionExpiration: 30,
       });
       await Package.create({
-        name:"Premium",
+        name: "Premium",
         price: 365,
         subscriptionPlan: "premium",
         subscriptionExpiration: 365,
       });
-
     } catch (error) {
       console.error("Error creating packages:", error);
     }

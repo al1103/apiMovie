@@ -10,6 +10,7 @@ router.use('/register', usersController.createUser);
 router.use('/app', usersController.loginFacebook);
 router.use('/getFB', usersController.getUsersFB);
 router.put('/UpdateService', usersController.UpdateService);
+router.post('/ApplyCode', usersController.ApplyCode);
 
 
 module.exports = router;
