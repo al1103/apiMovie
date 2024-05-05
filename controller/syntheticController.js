@@ -8,6 +8,7 @@ class syntheticController {
       const user = await User.findOne({ _id: req.params.id }).populate(
         "package"
       );
+      console.log(user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }

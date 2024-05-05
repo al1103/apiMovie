@@ -334,6 +334,7 @@ class UsersController {
             subscriptionExpiration: expirationDate,
           });
 
+          user.package = newPackageUser._id;
           await newPackageUser.save();
           user.points -= package_.price;
         } else {
@@ -350,8 +351,9 @@ class UsersController {
             { subscriptionExpiration: newExpirationDate }, // Update only the subscription expiration
             { new: true } // Set to true to return the modified document
           );
+          
+          user.package = PackageUserUpdate._id; 
 
-          console.log("New expiration date:", newExpirationDate);
           await PackageUserUpdate.save();
           user.points -= package_.price;
         }
