@@ -182,7 +182,9 @@ class UsersController {
 
       res
         .status(201)
-        .json({ message: "Comment created successfully", comment: newComment });
+        .json({ 
+          status: "success",
+          message: "Comment created successfully", comment: newComment });
     } catch (error) {
       console.error("Error creating comment:", error.message);
       res.status(500).json({ error: "Internal server error" }); // Avoid leaking specific error details
@@ -215,7 +217,9 @@ class UsersController {
 
       await user.save();
 
-      res.status(200).json({ message: "User updated successfully" });
+      res.status(200).json({
+        status: "success",
+        message: "User updated successfully" });
     } catch (error) {
       console.error("Error updating user:", error);
 

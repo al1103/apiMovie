@@ -96,7 +96,7 @@ class Movies {
       res.json({
         status: "success",
         length: movies.length,
-        results: movies,
+        data: movies,
         // TotalMovie: TotalMovie,
         totalPages, // Include totalPages in the response
       });
@@ -178,7 +178,7 @@ class Movies {
         res.json({
           length: movies.length,
           status: "success",
-          results: movies,
+          data: movies,
         });
       } else {
         const movies = await MovieDetail.find(searchQuery);
@@ -297,7 +297,7 @@ class Movies {
       res.json({
         length: filteredMovies.length,
         status: "success",
-        results: filteredMovies,
+        data: filteredMovies,
       });
     } catch (error) {
       next(error);
@@ -381,7 +381,7 @@ class Movies {
       res.json({
         length: filteredMovies.length,
         status: "success",
-        results: filteredMovies,
+        data: filteredMovies,
       });
     } catch (error) {
       next(error);
@@ -389,6 +389,7 @@ class Movies {
   }
   async latestMovies(req, res, next) {
     try {
+      
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
@@ -402,7 +403,7 @@ class Movies {
       res.json({
         status: "success",
         length: movies.length,
-        results: movies,
+        data: movies,
         totalPages,
       });
     } catch (error) {

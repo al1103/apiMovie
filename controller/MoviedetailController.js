@@ -11,7 +11,10 @@ class MovieDetailController {
         return res.status(404).json({ message: "Movie not found" }); // Handle not found case
       }
 
-      res.status(200).json(movieDetail);
+      res.status(200).json({
+        status: "success",
+        data: movieDetail}
+        );
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

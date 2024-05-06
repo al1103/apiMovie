@@ -39,7 +39,10 @@ class AuthController {
         await transporter.sendMail(mailOptions);
       }
 
-      res.status(201).json({ message: "Phim đã được tạo thành công" });
+      res.status(201).json({
+        status: "success",
+        message: "Phim đã được tạo thành công",
+      });
     } catch (error) {
       next(error);
     }
@@ -47,22 +50,22 @@ class AuthController {
 
   async deleteMovie(req, res) {
     try {
-      const result = await Movie.deleteOne({ _id: req.params.id });
-      if (result.deletedCount === 0) {
+      const data = await Movie.deleteOne({ _id: req.params.id });
+      if (data.deletedCount === 0) {
         return res.status(404).json({ message: "Phim không tồn tại" });
       }
-      res.json({ message: "Phim đã được xóa" });
+      res.json({ status: "success", message: "Phim đã được xóa" });
     } catch (error) {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
   async UpdateMovie(req, res) {
     try {
-      const result = await Movie.updateOne({ _id: req.params.id }, req.body);
-      if (result.nModified === 0) {
+      const data = await Movie.updateOne({ _id: req.params.id }, req.body);
+      if (data.nModified === 0) {
         return res.status(404).json({ message: "Phim không tồn tại" });
       }
-      res.json({ message: "Phim đã được cập nhật" });
+      res.json({ status: "success", message: "Phim đã được cập nhật" });
     } catch (error) {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
@@ -72,7 +75,6 @@ class AuthController {
       const id = req.params.id;
 
       const movieDetail = await MovieDetailService.find({ _id: id });
-      console.log(movieDetail);
 
       if (!movieDetail) {
         return res.status(404).json({ message: "Movie not found" }); // Handle not found case
@@ -80,7 +82,7 @@ class AuthController {
 
       res.status(200).json({
         status: "success",
-        result: movieDetail,
+        data: movieDetail,
       });
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -112,7 +114,8 @@ class AuthController {
       } else {
         return res.json({
           status: "success",
-          totalUsers,
+          totalUsers: totalUsers,
+          data: users,
         });
       }
     } catch (error) {
@@ -136,7 +139,10 @@ class AuthController {
       }
 
       // Return the user's comments
-      res.json(user.comments);
+      res.json({
+        status: "success",
+        data: user.comments,
+      });
     } catch (error) {
       console.error(error);
       if (error.name === "CastError") {

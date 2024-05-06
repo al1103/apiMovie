@@ -17,7 +17,7 @@ class syntheticController {
 
       res.status(200).json({
         status: "success",
-        result: userData,
+        data: userData,
       });
     } catch (error) {
       res.status(500).json({ error: "Internal Server Error" });
@@ -135,9 +135,9 @@ class syntheticController {
         user.password = newPassword;
       }
 
-      const result = await User.updateOne({ _id }, user);
+      const data = await User.updateOne({ _id }, user);
 
-      if (result.nModified === 0) {
+      if (data.nModified === 0) {
         return res
           .status(404)
           .json({
