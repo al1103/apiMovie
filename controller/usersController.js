@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
 const Package = require("../models/PackageDefault");
 const PackageUser = require("../models/PackageUser");
-
+const Favorite = require("../models/favorite");
 class UsersController {
   async getUsersFB(req, res) {
     try {
@@ -111,12 +111,6 @@ class UsersController {
           role: user.role,
           email: user.email,
           username: user.username,
-          age: user.age,
-          avatar: user.avatar,
-          comments: user.comments,
-          favoriteGenres: user.favoriteGenres,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
         },
         "zilong-zhou",
         {
@@ -146,45 +140,22 @@ class UsersController {
       const decodeToken = jwt.verify(token, "zilong-zhou");
       const authorId = decodeToken.userId;
       const contents = req.body.comment;
-      const movieId = req.params.id; // Assuming movie ID is in the URL path
+      const movieId = req.params.id;
       if (!movieId) {
-        throw new Error("Movie ID missing"); // Handle missing ID gracefully
+        throw new Error("Movie ID missing");
       }
       const newComment = new Comment({
         content: contents,
         User: authorId,
+        Movie: movieId,
       });
       await newComment.save();
 
-      const updatePromises = [];
-      if (movieId) {
-        updatePromises.push(
-          Movie.findByIdAndUpdate(
-            movieId,
-            { $push: { comments: newComment._id } },
-            { new: true }
-          )
-        );
-      }
-      if (authorId) {
-        updatePromises.push(
-          User.findByIdAndUpdate(
-            authorId,
-            { $push: { comments: newComment._id } },
-            { new: true }
-          )
-        );
-      }
-
-      if (updatePromises.length) {
-        await Promise.all(updatePromises);
-      }
-
-      res
-        .status(201)
-        .json({ 
-          status: "success",
-          message: "Comment created successfully", comment: newComment });
+      res.status(201).json({
+        status: "success",
+        message: "Comment created successfully",
+        comment: newComment,
+      });
     } catch (error) {
       console.error("Error creating comment:", error.message);
       res.status(500).json({ error: "Internal server error" }); // Avoid leaking specific error details
@@ -193,7 +164,6 @@ class UsersController {
   async updateUser(req, res) {
     try {
       const userId = req.params.id;
-      
 
       const { username, email, password, role, age } = req.body.dataUser;
       const user = await User.findByIdAndUpdate({ _id: userId });
@@ -219,7 +189,8 @@ class UsersController {
 
       res.status(200).json({
         status: "success",
-        message: "User updated successfully" });
+        message: "User updated successfully",
+      });
     } catch (error) {
       console.error("Error updating user:", error);
 
@@ -297,81 +268,83 @@ class UsersController {
       const token = req.headers.authorization.split(" ")[1];
       const decodeToken = jwt.verify(token, "zilong-zhou");
       const userId = decodeToken.userId;
-      const { subscriptionPlan, subscriptionExpiration } = req.body.dataUser;
+      const { subscriptionPlan, subscriptionExpiration } = req.body;
 
-      try {
-        const user = await User.findById(userId).populate("package");
-        if (!user) {
-          return res.status(404).json({
-            message: "User not found",
-          });
-        }
-
-        const package_ = await Package.findOne({
-          name: subscriptionPlan,
-          subscriptionExpiration: subscriptionExpiration,
+      const user = await User.findById(userId).populate("package");
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
         });
-
-        if (!package_) {
-          return res.status(404).json({ message: "Package not found" });
-        }
-
-        if (user.points < package_.price) {
-          return res.status(400).json({ message: "Not enough points" });
-        }
-
-        const CheckUserPackage = await PackageUser.findOne({
-          userId: user._id,
-        });
-        if (!CheckUserPackage) {
-          console.log("--------------------");
-          const expirationDate = new Date();
-          expirationDate.setDate(
-            expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
-          );
-
-          user.subscriptionExpiration = expirationDate;
-          const newPackageUser = new PackageUser({
-            userId: user._id,
-            name: package_.name,
-            subscriptionPlan: package_.subscriptionPlan,
-            subscriptionExpiration: expirationDate,
-          });
-
-          user.package = newPackageUser._id;
-          await newPackageUser.save();
-          user.points -= package_.price;
-        } else {
-          const newExpirationDate = new Date(
-            CheckUserPackage.subscriptionExpiration
-          );
-          newExpirationDate.setDate(
-            newExpirationDate.getDate() +
-              parseInt(package_.subscriptionExpiration)
-          );
-
-          const PackageUserUpdate = await PackageUser.findOneAndUpdate(
-            { userId: user._id },
-            { subscriptionExpiration: newExpirationDate }, // Update only the subscription expiration
-            { new: true } // Set to true to return the modified document
-          );
-          
-          user.package = PackageUserUpdate._id; 
-
-          await PackageUserUpdate.save();
-          user.points -= package_.price;
-        }
-
-        await user.validate();
-        await user.save();
-
-        return res
-          .status(200)
-          .json({ status: "success", message: "Subscription successful" });
-      } catch (error) {
-        console.error("Error:", error);
-        return res.status(500).json({ message: "Internal Server Error" });
       }
+
+      const package_ = await Package.findOne({
+        name: subscriptionPlan,
+        subscriptionExpiration: subscriptionExpiration,
+      });
+
+      if (!package_) {
+        return res.status(404).json({
+          status: "error",
+
+          message: "Package not found",
+        });
+      }
+
+      if (user.points < package_.price) {
+        return res.status(400).json({
+          status: "error",
+          message: "Not enough points",
+        });
+      }
+
+      const CheckUserPackage = await PackageUser.findOne({
+        userId: user._id,
+      });
+      if (!CheckUserPackage) {
+        console.log("--------------------");
+        const expirationDate = new Date();
+        expirationDate.setDate(
+          expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
+        );
+
+        user.subscriptionExpiration = expirationDate;
+        const newPackageUser = new PackageUser({
+          userId: user._id,
+          name: package_.name,
+          subscriptionPlan: package_.subscriptionPlan,
+          subscriptionExpiration: expirationDate,
+        });
+
+        user.package = newPackageUser._id;
+        await newPackageUser.save();
+        user.points -= package_.price;
+      } else {
+        const newExpirationDate = new Date(
+          CheckUserPackage.subscriptionExpiration
+        );
+        newExpirationDate.setDate(
+          newExpirationDate.getDate() +
+            parseInt(package_.subscriptionExpiration)
+        );
+
+        const PackageUserUpdate = await PackageUser.findOneAndUpdate(
+          { userId: user._id },
+          { subscriptionExpiration: newExpirationDate }, // Update only the subscription expiration
+          { new: true } // Set to true to return the modified document
+        );
+
+        user.package = PackageUserUpdate._id;
+
+        await PackageUserUpdate.save();
+        user.points -= package_.price;
+      }
+
+      await user.validate();
+      await user.save();
+
+      return res
+        .status(200)
+        .json({ status: "success", message: "Subscription successful" });
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -407,6 +380,81 @@ class UsersController {
       res.status(200).json({
         return_code: 1,
         status: "success",
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async AddFavorite(req, res) {
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      const decodeToken = jwt.verify(token, "zilong-zhou");
+      const userId = decodeToken.userId;
+      const data = req.body;
+      const checkfavorite = await Favorite.findOne({
+        userId: userId,
+        slug: data.slug,
+      });
+      if (checkfavorite) {
+        return res.status(400).json({
+          status: "error",
+          message: "Favorite already exists",
+        });
+      }
+
+      const favorite = new Favorite({
+        userId: userId,
+        name: data.name,
+        slug: data.slug,
+        thumb_url: data.thumb_url,
+      });
+
+      await favorite.save();
+
+      res.status(200).json({
+        status: "success",
+        message: "Favorite added",
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async GetFavorite(req, res) {
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      const decodeToken = jwt.verify(token, "zilong-zhou");
+      const userId = decodeToken.userId;
+      const favorite = await Favorite.find({ userId: userId });
+      res.status(200).json({
+        status: "success",
+        data: favorite,
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async DeleteFavorite(req, res) {
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      const decodeToken = jwt.verify(token, "zilong-zhou");
+      const userId = decodeToken.userId;
+      const id = req.params.id;
+      const favorite = await Favorite.findOneAndDelete({
+        userId: userId,
+        _id: id,
+      });
+      if (!favorite) {
+        return res.status(404).json({
+          status: "error",
+          message: "Favorite not found",
+        });
+      }
+      res.status(200).json({
+        status: "success",
+        message: "Favorite deleted",
       });
     } catch (error) {
       console.error("Error updating user:", error);

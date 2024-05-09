@@ -4,12 +4,11 @@ const nodemailer = require("nodemailer");
 
 class syntheticController {
   async getUser(req, res) {
-    
     try {
       const user = await User.findOne({ _id: req.params.id }).populate(
         "package"
       );
-      console.log(user);
+
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -117,8 +116,7 @@ class syntheticController {
   async UpdateUser(req, res) {
     try {
       const _id = req.params.id;
-      const { password, newPassword } = req.body.dataUser;
-      console.log(password, newPassword);
+      const { password, newPassword, avatar, ...otherInfo } = req.body; // Lấy các thông tin còn lại ngoài password, newPassword và avatar
       const user = await User.findOne({ _id });
 
       if (!user) {
@@ -126,26 +124,32 @@ class syntheticController {
           .status(401)
           .json("Người dùng không tồn tại hoặc không có quyền truy cập");
       }
-      // console.log(user.password, password, newPassword)
+
       if (newPassword) {
-        // console.log(user.password, password, newPassword)
         if (user.password !== password) {
           return res.status(401).json("Mật khẩu cũ không chính xác");
         }
         user.password = newPassword;
       }
 
+      if (avatar) {
+        user.avatar = avatar;
+      }
+
+      // Cập nhật các thông tin khác nếu được cung cấp
+      if (Object.keys(otherInfo).length > 0) {
+        for (let key in otherInfo) {
+          user[key] = otherInfo[key];
+        }
+      }
+
       const data = await User.updateOne({ _id }, user);
 
       if (data.nModified === 0) {
-        return res
-          .status(404)
-          .json({
-            message: "Không tìm thấy người dùng hoặc không có sự thay đổi",
-          });
+        return res.status(404).json({
+          message: "Không tìm thấy người dùng hoặc không có sự thay đổi",
+        });
       }
-
-      await user.save();
 
       const token = jwt.sign(
         { userId: user._id, role: user.role },

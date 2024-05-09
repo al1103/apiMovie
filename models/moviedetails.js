@@ -1,24 +1,5 @@
 const mongoose = require('mongoose');
 
-const episodeSchema = new mongoose.Schema({
-  name: String,
-  slug: String,
-  embed: String,
-  m3u8: String
-});
-
-const categoryItemSchema = new mongoose.Schema({
-  name: String
-});
-
-const categoryGroupSchema = new mongoose.Schema({
-  name: String
-});
-
-const categorySchema = new mongoose.Schema({
-  group: categoryGroupSchema,
-  list: [categoryItemSchema]
-});
 
 const movieSchema = new mongoose.Schema({
   name: String,
@@ -45,5 +26,7 @@ const movieSchema = new mongoose.Schema({
     default: [],
   },
 });
+
+movieSchema.index({ name: 'text', description: 'text' });
 
 module.exports = mongoose.model('Moviedetail', movieSchema);

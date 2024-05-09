@@ -21,7 +21,7 @@ const config3 = {
 
 class ZaloPay {
   async createOrder(req, res) {
-    const amount = req.body.datas.pointsPay;
+    const amount = req.body.pointsPay;
 
     const embed_data = {};
     const items = [

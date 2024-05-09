@@ -1,6 +1,5 @@
 const Movie = require("./movie");
 const authRouter = require("./auth");
-const MovieDetail = require("./moviedetail");
 const usersRouter = require("./users");
 const syntheticRouter = require("./synthetic");
 const Pay = require("./pay");
@@ -18,8 +17,7 @@ function authorize(roles) {
   };
 }
 function routes(app) {
-  app.use("/auth", authenToken, authorize(["admin"]), authRouter);
-  app.use("/movie", MovieDetail);
+  app.use("/auth",  authRouter);
   app.use("/users", usersRouter);
   app.use("/synthetic", syntheticRouter);
   app.use("/Pay", Pay);

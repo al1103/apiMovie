@@ -7,9 +7,61 @@ const MovieDetailService = require("../models/moviedetails");
 
 class AuthController {
   async addMovie(req, res, next) {
-    const movie = new Movie(req.body);
+    const categoryGroup =  req.body.category;
+
+    const list = categoryGroup.map(category => {
+      return { name: category };
+    });
+      console.log(list);
+    
+    const category = {
+      1: {
+        group: {
+          name: "Định dạng",
+        },
+        list: [
+          {
+            name: "Phim lẻ",
+          },
+        ],
+      },
+      2: {
+        group: {
+          name: "Thể loại",
+        },
+        list: [
+          {
+            name: "Hành Động",
+          },
+          {
+            name: "Phim Hài",
+          },
+        ],
+      },
+      3: {
+        group: {
+          name: "Năm",
+        },
+        list: [
+          {
+            name: "2002",
+          },
+        ],
+      },
+      4: {
+        group: {
+          name: "Quốc gia",
+        },
+        list: list,
+        
+      },
+    };
+
+
+    req.body.category = category;
+    const movie = new MovieDetailService(req.body);
     try {
-      const existingMovie = await Movie.findOne({
+      const existingMovie = await MovieDetailService.findOne({
         $or: [{ name: req.body.name }, { slug: req.body.slug }],
       });
       if (existingMovie) {
@@ -19,7 +71,7 @@ class AuthController {
       }
 
       await movie.save();
-      if (req.body.category == "Phim-18+") {
+      if (req.body.category == "kinh dị") {
         const usersOver18 = await User.aggregate([
           { $match: { age: { $gte: 18 } } }, // Filter users over 18
           { $project: { email: 1 } }, // Extract only email field
@@ -75,6 +127,7 @@ class AuthController {
       const id = req.params.id;
 
       const movieDetail = await MovieDetailService.find({ _id: id });
+      console.log(movieDetail);
 
       if (!movieDetail) {
         return res.status(404).json({ message: "Movie not found" }); // Handle not found case
