@@ -12,8 +12,6 @@ class AuthController {
     const list = categoryGroup.map(category => {
       return { name: category };
     });
-      console.log(list);
-    
     const category = {
       1: {
         group: {
@@ -71,7 +69,7 @@ class AuthController {
       }
 
       await movie.save();
-      if (req.body.category == "kinh dị") {
+      if (list.map((category) => category.name).includes("kinh dị") ){
         const usersOver18 = await User.aggregate([
           { $match: { age: { $gte: 18 } } }, // Filter users over 18
           { $project: { email: 1 } }, // Extract only email field
@@ -83,7 +81,7 @@ class AuthController {
           to: emailList, // Use individual email from the list
           subject: "Phim Mới Đã Có!",
           html: `
-              <p>Có phim mới thuộc thể loại 18+ đã được thêm vào hệ thống: ${movie.name}</p>
+              <p>Có phim mới thuộc thể loại kinh dị đã được thêm vào hệ thống: ${movie.name}</p>
               <p>Xem phim tại: http://localhost:3000/movie/${movie.slug}</p>
             `,
         };

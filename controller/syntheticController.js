@@ -5,19 +5,20 @@ const nodemailer = require("nodemailer");
 class syntheticController {
   async getUser(req, res) {
     try {
-      const user = await User.findOne({ _id: req.params.id }).populate(
-        "package"
-      );
+      const user = await User.findOne({ _id: req.params.id }).populate("package");
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      
+      // Destructure user._doc to remove password from response
       const { password, ...userData } = user._doc;
-
+      
       res.status(200).json({
         status: "success",
-        data: userData,
+        data: userData, // Use a different variable name to avoid conflicts
       });
+      
     } catch (error) {
       res.status(500).json({ error: "Internal Server Error" });
     }

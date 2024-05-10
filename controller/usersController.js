@@ -28,7 +28,7 @@ class UsersController {
       ) {
         return res.status(400).json({
           error:
-            "Invalid request body. Missing required fields: username, email, password.",
+            "Invalid request body. Missing required fields: username, email, password, age.",
         });
       }
 
@@ -41,50 +41,54 @@ class UsersController {
         });
       }
 
-      // 4. Check for existing username (optional, adjust based on your needs)
       const existingUserByUsername = await User.findOne({ username });
       if (existingUserByUsername) {
         return res.status(409).json({ error: "Username already exists." });
       }
 
-      // 5. Check for existing email (recommended)
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
         return res.status(409).json({ error: "Email address already in use." });
       }
 
-      // 6. Validate password complexity
       const passwordRegex =
         /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,40}$/;
       if (!passwordRegex.test(password)) {
         return res.status(400).json({
           error:
-            "Password must be 8-40 characters, contain at least one uppercase, one lowercase, one digit, and one letter.",
+            "Password must be 8-40 characters, contain at least one uppercase, one lowercase, one digit, and one special character.",
         });
       }
+
       const basicPackage = await Package.findOne({ subscriptionPlan: "basic" });
+      if (!basicPackage) {
+        return res.status(500).json({ error: "Basic package not found." });
+      }
 
       const newUser = await User.create({
         username: username,
         email: email,
         password: password,
         age: age,
-        package: basicPackage._id,
       });
-      await newUser
-        .save()
-        .then(() => {
-          res.status(201).json({
-            status: "success",
-            message: "User created successfully",
-          });
-        })
-        .catch((error) => {
-          console.error(error);
-          res.status(500).json({ error: "Internal Server Error" });
-        });
+
+      const newPackageUser = new PackageUser({
+        userId: newUser._id,
+        name: basicPackage.name,
+        subscriptionPlan: basicPackage.subscriptionPlan,
+        subscriptionExpiration: new Date(),
+      });
+
+      await newPackageUser.save();
+      newUser.package = newPackageUser._id;
+
+      await newUser.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "User created successfully",
+      });
     } catch (error) {
-      // Handle unexpected errors
       console.error(error);
       res.status(500).json({ error: "Internal Server Error" });
     }
@@ -99,9 +103,8 @@ class UsersController {
       if (!user || !user._id) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
-      const isPasswordValid = password;
 
-      if (!isPasswordValid) {
+      if (user.password !== password) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -266,85 +269,75 @@ class UsersController {
   async UpdateService(req, res) {
     try {
       const token = req.headers.authorization.split(" ")[1];
-      const decodeToken = jwt.verify(token, "zilong-zhou");
-      const userId = decodeToken.userId;
-      const { subscriptionPlan, subscriptionExpiration } = req.body;
+const decodeToken = jwt.verify(token, "zilong-zhou");
+const userId = decodeToken.userId;
+const { subscriptionPlan, subscriptionExpiration } = req.body;
 
-      const user = await User.findById(userId).populate("package");
-      if (!user) {
-        return res.status(404).json({
-          message: "User not found",
-        });
-      }
+// Find the user by ID and populate the 'package' field
+const user = await User.findById(userId).populate("package");
+if (!user) {
+  return res.status(404).json({ message: "User not found" });
+}
 
-      const package_ = await Package.findOne({
-        name: subscriptionPlan,
-        subscriptionExpiration: subscriptionExpiration,
-      });
+// Find the package based on the provided subscriptionPlan and subscriptionExpiration
+const package_ = await Package.findOne({
+  name: subscriptionPlan,
+  subscriptionExpiration: subscriptionExpiration,
+});
+console.log(package_);
 
-      if (!package_) {
-        return res.status(404).json({
-          status: "error",
+if (!package_) {
+  return res.status(404).json({ status: "error", message: "Package not found" });
+}
 
-          message: "Package not found",
-        });
-      }
+// Check if the user has enough points to purchase the package
+if (user.points < package_.price) {
+  return res.status(400).json({ status: "error", message: "Not enough points" });
+}
 
-      if (user.points < package_.price) {
-        return res.status(400).json({
-          status: "error",
-          message: "Not enough points",
-        });
-      }
+// Check if the user already has a package subscription
+const checkUserPackage = await PackageUser.findOne({ userId: user._id });
 
-      const CheckUserPackage = await PackageUser.findOne({
-        userId: user._id,
-      });
-      if (!CheckUserPackage) {
-        console.log("--------------------");
-        const expirationDate = new Date();
-        expirationDate.setDate(
-          expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
-        );
+// If the user doesn't have a package subscription, create a new one
+if (!checkUserPackage) {
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + parseInt(package_.subscriptionExpiration));
 
-        user.subscriptionExpiration = expirationDate;
-        const newPackageUser = new PackageUser({
-          userId: user._id,
-          name: package_.name,
-          subscriptionPlan: package_.subscriptionPlan,
-          subscriptionExpiration: expirationDate,
-        });
+  // Create a new PackageUser entry
+  const newPackageUser = new PackageUser({
+    userId: user._id,
+    name: package_.name,
+    subscriptionPlan: package_.subscriptionPlan,
+    subscriptionExpiration: expirationDate,
+  });
 
-        user.package = newPackageUser._id;
-        await newPackageUser.save();
-        user.points -= package_.price;
-      } else {
-        const newExpirationDate = new Date(
-          CheckUserPackage.subscriptionExpiration
-        );
-        newExpirationDate.setDate(
-          newExpirationDate.getDate() +
-            parseInt(package_.subscriptionExpiration)
-        );
+  user.subscriptionExpiration = expirationDate;
+  user.package = newPackageUser._id;
+  user.points -= package_.price;
 
-        const PackageUserUpdate = await PackageUser.findOneAndUpdate(
-          { userId: user._id },
-          { subscriptionExpiration: newExpirationDate }, // Update only the subscription expiration
-          { new: true } // Set to true to return the modified document
-        );
+  await newPackageUser.save();
+} else {
+  // If the user already has a package subscription, update it
+  const newExpirationDate = new Date(checkUserPackage.subscriptionExpiration);
+  newExpirationDate.setDate(newExpirationDate.getDate() + parseInt(package_.subscriptionExpiration));
 
-        user.package = PackageUserUpdate._id;
+  // Update the PackageUser entry
+  const packageUserUpdate = await PackageUser.findOneAndUpdate(
+    { userId: user._id },
+    { subscriptionPlan: package_.subscriptionPlan, subscriptionExpiration: newExpirationDate },
+    { new: true }
+  );
 
-        await PackageUserUpdate.save();
-        user.points -= package_.price;
-      }
+  user.package = packageUserUpdate._id;
+  user.points -= package_.price;
+}
 
-      await user.validate();
-      await user.save();
+// Validate and save the user's changes
+await user.validate();
+await user.save();
 
-      return res
-        .status(200)
-        .json({ status: "success", message: "Subscription successful" });
+return res.status(200).json({ status: "success", message: "Subscription successful" });
+
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
