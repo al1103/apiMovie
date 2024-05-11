@@ -121,3 +121,54 @@ class ZaloPay {
 }
 
 module.exports = new ZaloPay();
+
+
+
+
+
+
+
+
+/////////////////////////////
+
+      // const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();  
+      //     const [movies, totalResults] = await Promise.all([ // Fetch movies and total count
+      //       MovieDetail.aggregate([
+      //         {
+      //           $addFields: {
+      //             categoryArray: { $objectToArray: "$category" }
+      //           }
+      //         },
+      //         {
+      //           $project: {
+      //             title: 1,
+      //             yearMatch: {
+      //               $filter: {
+      //                 input: "$categoryArray",
+      //                 as: "cat",
+      //                 cond: { $eq: ["$$cat.v.group.name", "Năm"] }
+      //               }
+      //             }
+      //           }
+      //         },
+      //         { $unwind: "$yearMatch" },
+      //         {
+      //           $match: {
+      //             "yearMatch.v.list": {
+      //               $elemMatch: {
+      //                 "name": year.toString()
+      //               }
+      //             }
+      //           }
+      //         },
+      //         { $project: { _id: 1, title: 1 } },
+      //         { $sort: { _id: -1 } },
+      //         { $skip: skip }, 
+      //         { $limit: limit }
+      //       ]).then((movies) => MovieDetail.populate(movies, { path: "_id" })),
+      
+      //       MovieDetail.aggregate([ 
+      //         { $count: "total" } 
+      //       ]).then((result) => result.length > 0 ? result[0].total : 0) // Extract total count
+      //     ]);
+      ////////////////////////////////////////

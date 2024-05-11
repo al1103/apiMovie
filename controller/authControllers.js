@@ -100,7 +100,7 @@ class AuthController {
 
   async deleteMovie(req, res) {
     try {
-      const data = await Movie.deleteOne({ _id: req.params.id });
+      const data = await MovieDetailService.deleteOne({ _id: req.params.id });
       if (data.deletedCount === 0) {
         return res.status(404).json({ message: "Phim không tồn tại" });
       }
@@ -111,7 +111,7 @@ class AuthController {
   }
   async UpdateMovie(req, res) {
     try {
-      const data = await Movie.updateOne({ _id: req.params.id }, req.body);
+      const data = await MovieDetailService.updateOne({ _id: req.params.id }, req.body);
       if (data.nModified === 0) {
         return res.status(404).json({ message: "Phim không tồn tại" });
       }
