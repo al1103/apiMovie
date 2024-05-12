@@ -77,18 +77,21 @@ class Movies {
     }
   }
 
-  async  SearchMovie(req, res, next) {
+  async SearchMovie(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
       const nameQuery = req.query.name ? req.query.name.trim() : "";
-  
+
       // Lọc phim theo tên
-      let movies = await MovieDetail.find({ $text: { $search: nameQuery } }, { score: { $meta: 'textScore' } })
+      let movies = await MovieDetail.find(
+        { $text: { $search: nameQuery } },
+        { score: { $meta: "textScore" } }
+      )
         .skip(skip)
         .limit(limit);
-  
+
       // Lọc lại theo thể loại nếu có
       if (req.query.category) {
         const categoryMap = {
@@ -110,12 +113,12 @@ class Movies {
           "hinh-su": "Hình Sự",
         };
         const normalizedCategory = req.query.category.toLowerCase();
-        const categoryName = categoryMap[normalizedCategory] || normalizedCategory;
-  
+        const categoryName =
+          categoryMap[normalizedCategory] || normalizedCategory;
+
         // Lọc lại kết quả theo thể loại
         const pipeline = [
-           { $match: { _id: { $in: movies.map(movie => movie._id) } } }, 
-          { $project: { category: { $objectToArray: "$category" }, title: 1 } },
+          { $project: { category: { $objectToArray: "$category" } } },
           { $unwind: "$category" },
           { $unwind: "$category.v.list" },
           { $match: { "category.v.list.name": categoryName } },
@@ -124,12 +127,18 @@ class Movies {
           { $skip: skip },
           { $limit: limit },
         ];
+
+        movies = await MovieDetail.aggregate(pipeline).then((movies) =>
+          MovieDetail.populate(movies, { path: "_id" })
+        );
+        const newMovie = []
   
-        movies = await MovieDetail.aggregate(pipeline)
-        .then((movies) => MovieDetail.populate(movies, { path: "_id" }))
-        ;
+        movies.forEach(movie => {
+          newMovie.push(movie._id)
+        })
+        movies = newMovie
       }
-  
+
       res.json({
         length: movies.length,
         status: "success",
@@ -139,15 +148,11 @@ class Movies {
       next(error);
     }
   }
-  
-  
-  
-  
 
   async FilterMovie(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const limit = parseInt(req.query.limit) || 4;
       const skip = (page - 1) * limit;
 
       const categoryMap = {
@@ -169,39 +174,37 @@ class Movies {
         "hinh-su": "Hình Sự",
       };
 
-      const categoryQuery = req.query.category?.toLowerCase(); // Get lowercase category
-      const categoryName = categoryMap[categoryQuery] || categoryQuery;
+      let actionMovies;
 
-      const pipeline = [
-        { $project: { category: { $objectToArray: "$category" } } },
-        { $unwind: "$category" },
-        { $unwind: "$category.v.list" },
-        { $match: { "category.v.list.name": categoryName } },
-        { $project: { _id: 1, title: 1 } }, 
-        { $sort: { _id: -1 } },
-        { $skip: skip },
-        { $limit: limit },
-      ];
-      try {
-        const actionMovies = await MovieDetail.aggregate(pipeline)
-          .exec()
-          .then((movies) => MovieDetail.populate(movies, { path: "_id" }));
-        
+      if (req.query.category) {
+        const categoryQuery = req.query.category.toLowerCase();
+        const categoryName = categoryMap[categoryQuery] || categoryQuery;
+        const pipeline = [
+          { $project: { category: { $objectToArray: "$category" } } },
+          { $unwind: "$category" },
+          { $unwind: "$category.v.list" },
+          { $match: { "category.v.list.name": categoryName } },
+          { $project: { _id: 1, title: 1 } },
+          { $sort: { _id: -1 } },
+          { $skip: skip },
+          { $limit: limit },
+        ];
 
-        res.json({
-          status: "success",
-          length: actionMovies.length,
-          page,
-          data: actionMovies,
-        });
-      } catch (error) {
-        res.status(500).json({ status: "error", message: error.message });
+        actionMovies = await MovieDetail.aggregate(pipeline).then((movies) =>
+          MovieDetail.populate(movies, { path: "_id" })
+        );
       }
+
+      res.json({
+        status: "success",
+        length: actionMovies.length,
+        page,
+        data: actionMovies,
+      });
     } catch (error) {
       next(error);
     }
   }
-
 
   async latestMovies(req, res, next) {
     try {
