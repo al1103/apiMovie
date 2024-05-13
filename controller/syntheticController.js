@@ -1,7 +1,7 @@
 const User = require("../models/users_model");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-
+const bcrypt = require("bcryptjs");
 class syntheticController {
   async getUser(req, res) {
     try {
@@ -91,7 +91,7 @@ class syntheticController {
       }
 
       // Hash the new password before saving
-      user.password = req.body.password;
+      user.password = await bcrypt.hash(req.body.password, 10);
       await user.save();
 
       // Send confirmation email (handle potential errors)

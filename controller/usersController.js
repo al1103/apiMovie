@@ -7,6 +7,7 @@ const cron = require("node-cron");
 const Package = require("../models/PackageDefault");
 const PackageUser = require("../models/PackageUser");
 const Favorite = require("../models/favorite");
+const bcrypt = require("bcryptjs");
 class UsersController {
   async getUsersFB(req, res) {
     try {
@@ -17,7 +18,8 @@ class UsersController {
       res.status(500).json({ error: "Internal server error" });
     }
   }
-  async createUser(req, res) {
+
+  async  createUser(req, res) {
     try {
       if (
         !req.body ||
@@ -31,26 +33,26 @@ class UsersController {
             "Invalid request body. Missing required fields: username, email, password, age.",
         });
       }
-
+  
       const { username, email, password, age } = req.body;
-
+  
       const emailRegex = /^\w+@[a-zA-Z\d\-.]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
           error: "Invalid email format. Please provide a valid email address.",
         });
       }
-
+  
       const existingUserByUsername = await User.findOne({ username });
       if (existingUserByUsername) {
         return res.status(409).json({ error: "Username already exists." });
       }
-
+  
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
         return res.status(409).json({ error: "Email address already in use." });
       }
-
+  
       const passwordRegex =
         /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,40}$/;
       if (!passwordRegex.test(password)) {
@@ -59,31 +61,32 @@ class UsersController {
             "Password must be 8-40 characters, contain at least one uppercase, one lowercase, one digit, and one special character.",
         });
       }
-
+      const hashedPassword = await bcrypt.hash(password, 10); // Hash mật khẩu bằng bcrypt
+  
       const basicPackage = await Package.findOne({ subscriptionPlan: "basic" });
       if (!basicPackage) {
         return res.status(500).json({ error: "Basic package not found." });
       }
-
+  
       const newUser = await User.create({
         username: username,
         email: email,
-        password: password,
+        password: hashedPassword, // Sử dụng mật khẩu đã được hash
         age: age,
       });
-
+  
       const newPackageUser = new PackageUser({
         userId: newUser._id,
         name: basicPackage.name,
         subscriptionPlan: basicPackage.subscriptionPlan,
         subscriptionExpiration: new Date(),
       });
-
+  
       await newPackageUser.save();
       newUser.package = newPackageUser._id;
-
+  
       await newUser.save();
-
+  
       res.status(201).json({
         status: "success",
         message: "User created successfully",
@@ -93,50 +96,53 @@ class UsersController {
       res.status(500).json({ error: "Internal Server Error" });
     }
   }
+  
 
-  async authenticateUser(req, res) {
-    try {
-      const { email, password } = req.body;
 
-      const user = await User.findOne({ email }); // Include passwordHash field
+async  authenticateUser(req, res) {
+  try {
+    const { email, password } = req.body;
 
-      if (!user || !user._id) {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
+    const user = await User.findOne({ email }); // Include passwordHash field
 
-      if (user.password !== password) {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-
-      const token = jwt.sign(
-        {
-          userId: user._id,
-          role: user.role,
-          email: user.email,
-          username: user.username,
-        },
-        "zilong-zhou",
-        {
-          expiresIn: "24h",
-        }
-      );
-
-      const sanitizedUserData = {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      };
-      res.status(200).json({
-        status: "success",
-        token,
-        data: sanitizedUserData,
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Internal server error" });
+    if (!user || !user._id) {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
+    const isPasswordValid = await bcrypt.compare(password, user.password); // So sánh mật khẩu đã hash với mật khẩu đã lưu
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+        email: user.email,
+        username: user.username,
+      },
+      "zilong-zhou",
+      {
+        expiresIn: "24h",
+      }
+    );
+
+    const sanitizedUserData = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    };
+    res.status(200).json({
+      status: "success",
+      token,
+      data: sanitizedUserData,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
   }
+}
+
   async postComment(req, res) {
     try {
       const token = req.headers.authorization.split(" ")[1];
@@ -183,7 +189,8 @@ class UsersController {
 
       // Password handling (assuming password hashing)
       if (password) {
-        user.password = password; // Hash using a library like bcrypt
+        user.password =  bcrypt.hashSync(password, 10);
+
       }
 
       await user.validate(); // Throws an error if validation fails
