@@ -17,6 +17,7 @@ const commentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  
 });
 
 commentSchema.index({ movie: 1 }); 

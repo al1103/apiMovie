@@ -2,6 +2,7 @@ const Movie = require("../models/movies");
 const MovieDetail = require("../models/moviedetails");
 const Package = require("../models/PackageDefault"); // Import Package model
 const Comment = require("../models/Comment");
+const moviedetails = require("../models/moviedetails");
 
 class Movies {
   async index(req, res, next) {}
@@ -50,6 +51,7 @@ class Movies {
         .skip(skip)
         .limit(limit);
 
+     
       res.json({
         status: "success",
         length: movies.length,
@@ -71,7 +73,21 @@ class Movies {
       if (!movie) {
         return res.status(404).json({ message: "Không tìm thấy phim" });
       }
-      res.json({ status: "success", data: movie });
+
+      const movieDelete = {
+        _id: movie._id,
+        title: movie.title,
+        category: movie.category,
+        description: movie.description,
+        slug: movie.slug,
+        episodes: movie.episodes,
+        time: movie.time,
+        quality: movie.quality,
+        language: movie.language,
+        casts: movie.casts,
+      };
+
+      res.json({ status: "success", data: movieDelete });
     } catch (error) {
       next(error);
     }
@@ -131,12 +147,20 @@ class Movies {
         movies = await MovieDetail.aggregate(pipeline).then((movies) =>
           MovieDetail.populate(movies, { path: "_id" })
         );
-        const newMovie = []
-  
-        movies.forEach(movie => {
-          newMovie.push(movie._id)
-        })
-        movies = newMovie
+        const newMovie = [];
+
+        movies.forEach((movie) => {
+          newMovie.push(movie._id);
+        });
+        movies = newMovie.map(
+          ({ _id, title, category, description, slug }) => ({
+            _id,
+            title,
+            category,
+            description,
+            slug,
+          })
+        );
       }
 
       res.json({
@@ -194,6 +218,7 @@ class Movies {
           MovieDetail.populate(movies, { path: "_id" })
         );
       }
+     
 
       res.json({
         status: "success",
@@ -208,7 +233,7 @@ class Movies {
 
   async latestMovies(req, res, next) {
     try {
-      const page = parseInt(req.query.page) || 1;
+      const page = parseInt(req.query.page) || 2;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
       const count = await MovieDetail.countDocuments();
@@ -217,6 +242,7 @@ class Movies {
         .sort({ modified: -1 })
         .skip(skip)
         .limit(limit);
+      
 
       res.json({
         status: "success",
@@ -231,7 +257,9 @@ class Movies {
   async getComments(req, res, next) {
     try {
       const id = req.params.id;
-      const comments = await Comment.find({ movieId: id }).populate("User");
+      const comments = await Comment.find({ Movie: id })
+        .populate("User")
+        .sort({ createdAt: -1 });
       if (!comments || comments.length === 0) {
         return res
           .status(404)

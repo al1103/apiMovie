@@ -4,14 +4,16 @@ const mongoose = require("mongoose");
 const nodemailer = require("nodemailer"); //
 const User = require("../models/users_model");
 const MovieDetailService = require("../models/moviedetails");
+const Comment = require("../models/Comment");
 
 class AuthController {
   async addMovie(req, res, next) {
-    const categoryGroup =  req.body.category;
+    const categoryGroup = req.body.category;
 
-    const list = categoryGroup.map(category => {
+    const list = categoryGroup.map((category) => {
       return { name: category };
     });
+    console.log(list);
     const category = {
       1: {
         group: {
@@ -27,14 +29,7 @@ class AuthController {
         group: {
           name: "Thể loại",
         },
-        list: [
-          {
-            name: "Hành Động",
-          },
-          {
-            name: "Phim Hài",
-          },
-        ],
+        list: list,
       },
       3: {
         group: {
@@ -50,11 +45,13 @@ class AuthController {
         group: {
           name: "Quốc gia",
         },
-        list: list,
-        
+        list: [
+          {
+            name: "Mỹ",
+          },
+        ],
       },
     };
-
 
     req.body.category = category;
     const movie = new MovieDetailService(req.body);
@@ -69,7 +66,7 @@ class AuthController {
       }
 
       await movie.save();
-      if (list.map((category) => category.name).includes("kinh dị") ){
+      if (list.map((category) => category.name).includes("kinh dị")) {
         const usersOver18 = await User.aggregate([
           { $match: { age: { $gte: 18 } } }, // Filter users over 18
           { $project: { email: 1 } }, // Extract only email field
@@ -111,7 +108,10 @@ class AuthController {
   }
   async UpdateMovie(req, res) {
     try {
-      const data = await MovieDetailService.updateOne({ _id: req.params.id }, req.body);
+      const data = await MovieDetailService.updateOne(
+        { _id: req.params.id },
+        req.body
+      );
       if (data.nModified === 0) {
         return res.status(404).json({ message: "Phim không tồn tại" });
       }
@@ -177,22 +177,16 @@ class AuthController {
 
   async getComments(req, res) {
     try {
-      const user = await User.findOne({ _id: req.params.id }).populate(
-        "comments"
-      );
-      if (!user) {
-        return res.status(404).json({ message: "User không tồn tại" });
-      }
+      const comments = await Comment.find({ User: req.params.id });
 
-      // Check if user has any comments
-      if (!user.comments || user.comments.length === 0) {
-        return res.json({ message: "Người dùng này không có bình luận nào." });
+      if (!comments) {
+        return res.status(404).json({ message: "User chưa từng comment" });
       }
 
       // Return the user's comments
       res.json({
         status: "success",
-        data: user.comments,
+        data: comments,
       });
     } catch (error) {
       console.error(error);

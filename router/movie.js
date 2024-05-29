@@ -8,7 +8,5 @@ router.get("/allmovie", Movies.getAllMovies);
 router.get("/latestMovies", Movies.latestMovies);
 router.get("/search", Movies.SearchMovie);
 router.get("/:slug", Movies.getOneMovie);
-// router.get("/", Movies);
-
 
 module.exports = router;

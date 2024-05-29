@@ -19,7 +19,7 @@ class UsersController {
     }
   }
 
-  async  createUser(req, res) {
+  async createUser(req, res) {
     try {
       if (
         !req.body ||
@@ -33,26 +33,26 @@ class UsersController {
             "Invalid request body. Missing required fields: username, email, password, age.",
         });
       }
-  
+
       const { username, email, password, age } = req.body;
-  
+
       const emailRegex = /^\w+@[a-zA-Z\d\-.]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
           error: "Invalid email format. Please provide a valid email address.",
         });
       }
-  
+
       const existingUserByUsername = await User.findOne({ username });
       if (existingUserByUsername) {
         return res.status(409).json({ error: "Username already exists." });
       }
-  
+
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
         return res.status(409).json({ error: "Email address already in use." });
       }
-  
+
       const passwordRegex =
         /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,40}$/;
       if (!passwordRegex.test(password)) {
@@ -62,31 +62,31 @@ class UsersController {
         });
       }
       const hashedPassword = await bcrypt.hash(password, 10); // Hash mật khẩu bằng bcrypt
-  
+
       const basicPackage = await Package.findOne({ subscriptionPlan: "basic" });
       if (!basicPackage) {
         return res.status(500).json({ error: "Basic package not found." });
       }
-  
+
       const newUser = await User.create({
         username: username,
         email: email,
         password: hashedPassword, // Sử dụng mật khẩu đã được hash
         age: age,
       });
-  
+
       const newPackageUser = new PackageUser({
         userId: newUser._id,
         name: basicPackage.name,
         subscriptionPlan: basicPackage.subscriptionPlan,
         subscriptionExpiration: new Date(),
       });
-  
+
       await newPackageUser.save();
       newUser.package = newPackageUser._id;
-  
+
       await newUser.save();
-  
+
       res.status(201).json({
         status: "success",
         message: "User created successfully",
@@ -96,70 +96,105 @@ class UsersController {
       res.status(500).json({ error: "Internal Server Error" });
     }
   }
-  
 
+  async authenticateUser(req, res) {
+    try {
+      const { email, password } = req.body;
 
-async  authenticateUser(req, res) {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email }); // Include passwordHash field
-
-    if (!user || !user._id) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password); // So sánh mật khẩu đã hash với mật khẩu đã lưu
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        role: user.role,
-        email: user.email,
-        username: user.username,
-      },
-      "zilong-zhou",
-      {
-        expiresIn: "24h",
+      const user = await User.findOne({ email }); // Include passwordHash field
+      if (!user || !user._id) {
+        return res.status(401).json({ error: "Invalid email or password" });
       }
-    );
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      // So sánh mật khẩu đã hash với mật khẩu đã lưu
 
-    const sanitizedUserData = {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-    };
-    res.status(200).json({
-      status: "success",
-      token,
-      data: sanitizedUserData,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Internal server error" });
+      // const isPasswordValid = user.password === password;
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const token = jwt.sign(
+        {
+          userId: user._id,
+          role: user.role,
+          email: user.email,
+          username: user.username,
+        },
+        "zilong-zhou",
+        {
+          expiresIn: "24h",
+        }
+      );
+
+      const sanitizedUserData = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      };
+      res.status(200).json({
+        status: "success",
+        token,
+        data: sanitizedUserData,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
   }
-}
 
   async postComment(req, res) {
     try {
-      const token = req.headers.authorization.split(" ")[1];
-      const decodeToken = jwt.verify(token, "zilong-zhou");
-      const authorId = decodeToken.userId;
-      const contents = req.body.comment;
+      // 1. Check for Authorization Header
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: Missing authorization header" });
+      }
+
+      // 2. Extract Token
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: Invalid token format" });
+      }
+
+      // 3. Verify Token
+      let decodedToken;
+      try {
+        decodedToken = jwt.verify(token, "zilong-zhou");
+      } catch (err) {
+        return res.status(401).json({ error: "Unauthorized: Invalid token" });
+      }
+
+      // 4. Extract User ID
+      const authorId = decodedToken.userId;
+
+      // 5. Get Comment Content
+      const { comment } = req.body; // Destructure directly
+      if (!comment) {
+        return res.status(400).json({ error: "Comment content is required" });
+      }
+
+      // 6. Get Movie ID
       const movieId = req.params.id;
       if (!movieId) {
-        throw new Error("Movie ID missing");
+        return res.status(400).json({ error: "Movie ID missing" });
       }
+
+      // 7. Create New Comment
       const newComment = new Comment({
-        content: contents,
+        content: comment,
         User: authorId,
         Movie: movieId,
       });
+
+      // 8. Save Comment
       await newComment.save();
 
+      // 9. Successful Response
       res.status(201).json({
         status: "success",
         message: "Comment created successfully",
@@ -167,9 +202,12 @@ async  authenticateUser(req, res) {
       });
     } catch (error) {
       console.error("Error creating comment:", error.message);
-      res.status(500).json({ error: "Internal server error" }); // Avoid leaking specific error details
+
+      // 10. Generalized Error Response (Avoid leaking sensitive info)
+      res.status(500).json({ error: "Internal server error" });
     }
   }
+
   async updateUser(req, res) {
     try {
       const userId = req.params.id;
@@ -189,8 +227,7 @@ async  authenticateUser(req, res) {
 
       // Password handling (assuming password hashing)
       if (password) {
-        user.password =  bcrypt.hashSync(password, 10);
-
+        user.password = bcrypt.hashSync(password, 10);
       }
 
       await user.validate(); // Throws an error if validation fails
@@ -276,75 +313,90 @@ async  authenticateUser(req, res) {
   async UpdateService(req, res) {
     try {
       const token = req.headers.authorization.split(" ")[1];
-const decodeToken = jwt.verify(token, "zilong-zhou");
-const userId = decodeToken.userId;
-const { subscriptionPlan, subscriptionExpiration } = req.body;
+      const decodeToken = jwt.verify(token, "zilong-zhou");
+      const userId = decodeToken.userId;
+      const { subscriptionPlan, subscriptionExpiration } = req.body;
 
-// Find the user by ID and populate the 'package' field
-const user = await User.findById(userId).populate("package");
-if (!user) {
-  return res.status(404).json({ message: "User not found" });
-}
+      // Find the user by ID and populate the 'package' field
+      const user = await User.findById(userId).populate("package");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-// Find the package based on the provided subscriptionPlan and subscriptionExpiration
-const package_ = await Package.findOne({
-  name: subscriptionPlan,
-  subscriptionExpiration: subscriptionExpiration,
-});
-console.log(package_);
+      // Find the package based on the provided subscriptionPlan and subscriptionExpiration
+      const package_ = await Package.findOne({
+        name: subscriptionPlan,
+        subscriptionExpiration: subscriptionExpiration,
+      });
+      console.log(package_);
 
-if (!package_) {
-  return res.status(404).json({ status: "error", message: "Package not found" });
-}
+      if (!package_) {
+        return res
+          .status(404)
+          .json({ status: "error", message: "Package not found" });
+      }
 
-// Check if the user has enough points to purchase the package
-if (user.points < package_.price) {
-  return res.status(400).json({ status: "error", message: "Not enough points" });
-}
+      // Check if the user has enough points to purchase the package
+      if (user.points < package_.price) {
+        return res
+          .status(400)
+          .json({ status: "error", message: "Not enough points" });
+      }
 
-// Check if the user already has a package subscription
-const checkUserPackage = await PackageUser.findOne({ userId: user._id });
+      // Check if the user already has a package subscription
+      const checkUserPackage = await PackageUser.findOne({ userId: user._id });
 
-// If the user doesn't have a package subscription, create a new one
-if (!checkUserPackage) {
-  const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + parseInt(package_.subscriptionExpiration));
+      // If the user doesn't have a package subscription, create a new one
+      if (!checkUserPackage) {
+        const expirationDate = new Date();
+        expirationDate.setDate(
+          expirationDate.getDate() + parseInt(package_.subscriptionExpiration)
+        );
 
-  // Create a new PackageUser entry
-  const newPackageUser = new PackageUser({
-    userId: user._id,
-    name: package_.name,
-    subscriptionPlan: package_.subscriptionPlan,
-    subscriptionExpiration: expirationDate,
-  });
+        // Create a new PackageUser entry
+        const newPackageUser = new PackageUser({
+          userId: user._id,
+          name: package_.name,
+          subscriptionPlan: package_.subscriptionPlan,
+          subscriptionExpiration: expirationDate,
+        });
 
-  user.subscriptionExpiration = expirationDate;
-  user.package = newPackageUser._id;
-  user.points -= package_.price;
+        user.subscriptionExpiration = expirationDate;
+        user.package = newPackageUser._id;
+        user.points -= package_.price;
 
-  await newPackageUser.save();
-} else {
-  // If the user already has a package subscription, update it
-  const newExpirationDate = new Date(checkUserPackage.subscriptionExpiration);
-  newExpirationDate.setDate(newExpirationDate.getDate() + parseInt(package_.subscriptionExpiration));
+        await newPackageUser.save();
+      } else {
+        // If the user already has a package subscription, update it
+        const newExpirationDate = new Date(
+          checkUserPackage.subscriptionExpiration
+        );
+        newExpirationDate.setDate(
+          newExpirationDate.getDate() +
+            parseInt(package_.subscriptionExpiration)
+        );
 
-  // Update the PackageUser entry
-  const packageUserUpdate = await PackageUser.findOneAndUpdate(
-    { userId: user._id },
-    { subscriptionPlan: package_.subscriptionPlan, subscriptionExpiration: newExpirationDate },
-    { new: true }
-  );
+        // Update the PackageUser entry
+        const packageUserUpdate = await PackageUser.findOneAndUpdate(
+          { userId: user._id },
+          {
+            subscriptionPlan: package_.subscriptionPlan,
+            subscriptionExpiration: newExpirationDate,
+          },
+          { new: true }
+        );
 
-  user.package = packageUserUpdate._id;
-  user.points -= package_.price;
-}
+        user.package = packageUserUpdate._id;
+        user.points -= package_.price;
+      }
 
-// Validate and save the user's changes
-await user.validate();
-await user.save();
+      // Validate and save the user's changes
+      await user.validate();
+      await user.save();
 
-return res.status(200).json({ status: "success", message: "Subscription successful" });
-
+      return res
+        .status(200)
+        .json({ status: "success", message: "Subscription successful" });
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
