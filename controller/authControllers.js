@@ -1,139 +1,73 @@
-const Movie = require("../models/movies");
-const jwt = require("jsonwebtoken");
-const mongoose = require("mongoose");
-const nodemailer = require("nodemailer"); //
 const User = require("../models/users_model");
-const MovieDetailService = require("../models/moviedetails");
 const Comment = require("../models/Comment");
+const Blogs = require("../models/blog");
+const jwt = require("jsonwebtoken");
 
 class AuthController {
-  async addMovie(req, res, next) {
-    const categoryGroup = req.body.category;
-
-    const list = categoryGroup.map((category) => {
-      return { name: category };
-    });
-    console.log(list);
-    const category = {
-      1: {
-        group: {
-          name: "Định dạng",
-        },
-        list: [
-          {
-            name: "Phim lẻ",
-          },
-        ],
-      },
-      2: {
-        group: {
-          name: "Thể loại",
-        },
-        list: list,
-      },
-      3: {
-        group: {
-          name: "Năm",
-        },
-        list: [
-          {
-            name: "2002",
-          },
-        ],
-      },
-      4: {
-        group: {
-          name: "Quốc gia",
-        },
-        list: [
-          {
-            name: "Mỹ",
-          },
-        ],
-      },
-    };
-
-    req.body.category = category;
-    const movie = new MovieDetailService(req.body);
+  async createPost(req, res, next) {
     try {
-      const existingMovie = await MovieDetailService.findOne({
-        $or: [{ name: req.body.name }, { slug: req.body.slug }],
+      const token = req.headers.authorization?.split(" ")[1];
+      const decoded = jwt.verify(token, "zilong-zhou"); // Add type assertion for clarity
+
+      if (!token) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Unauthorized - Missing token",
+        });
+      }
+
+      const id = decoded.userId;
+      const newBlog = new Blogs({
+        ...req.body,
+        authorId: id, // Use the userId from the decoded token
       });
-      if (existingMovie) {
-        return res
-          .status(409)
-          .json({ message: "Tên phim hoặc slug đã tồn tại" });
-      }
 
-      await movie.save();
-      if (list.map((category) => category.name).includes("kinh dị")) {
-        const usersOver18 = await User.aggregate([
-          { $match: { age: { $gte: 18 } } }, // Filter users over 18
-          { $project: { email: 1 } }, // Extract only email field
-        ]);
-
-        const emailList = usersOver18.map((user) => user.email).join(","); // Use map to extract emails
-        const mailOptions = {
-          from: "Zilong",
-          to: emailList, // Use individual email from the list
-          subject: "Phim Mới Đã Có!",
-          html: `
-              <p>Có phim mới thuộc thể loại kinh dị đã được thêm vào hệ thống: ${movie.name}</p>
-              <p>Xem phim tại: http://localhost:3000/movie/${movie.slug}</p>
-            `,
-        };
-
-        await transporter.sendMail(mailOptions);
-      }
+      await newBlog.save(); // Await the save operation and get the result
 
       res.status(201).json({
-        status: "success",
-        message: "Phim đã được tạo thành công",
+        status: 200,
+        message: "Blog created successfully",
       });
     } catch (error) {
-      next(error);
+      next(error); // Pass the error to the error handling middleware
     }
   }
-
-  async deleteMovie(req, res) {
+  async deleteBlog(req, res) {
     try {
-      const data = await MovieDetailService.deleteOne({ _id: req.params.id });
+      const data = await Blogs.deleteOne({ slug: req.params.slug });
       if (data.deletedCount === 0) {
-        return res.status(404).json({ message: "Phim không tồn tại" });
+        return res.status(404).json({ message: "không tồn tại" });
       }
-      res.json({ status: "success", message: "Phim đã được xóa" });
+      res.json({ status: 200, message: "đã được xóa" });
     } catch (error) {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
-    }
+    } 
   }
-  async UpdateMovie(req, res) {
+  async UpdateBlog(req, res) {
     try {
-      const data = await MovieDetailService.updateOne(
-        { _id: req.params.id },
-        req.body
-      );
+      const data = await Blogs.updateOne({ _id: req.params.id }, req.body);
       if (data.nModified === 0) {
-        return res.status(404).json({ message: "Phim không tồn tại" });
+        return res.status(404).json({ message: "không tồn tại" });
       }
-      res.json({ status: "success", message: "Phim đã được cập nhật" });
+      res.json({ status: 200, message: "đã được cập nhật" });
     } catch (error) {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
-  async getOneMovieAdmin(req, res) {
+  async getOneBlogAdmin(req, res) {
     try {
       const id = req.params.id;
 
-      const movieDetail = await MovieDetailService.find({ _id: id });
-      console.log(movieDetail);
+      const BlogDetail = await Blogs.find({ _id: id });
+      console.log(BlogDetail);
 
-      if (!movieDetail) {
-        return res.status(404).json({ message: "Movie not found" }); // Handle not found case
+      if (!BlogDetail) {
+        return res.status(404).json({ message: "Blog not found" }); // Handle not found case
       }
 
       res.status(200).json({
-        status: "success",
-        data: movieDetail,
+        status: 200,
+        data: BlogDetail,
       });
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -157,14 +91,14 @@ class AuthController {
 
       if (hasQuery) {
         return res.json({
-          status: "success",
+          status: 200,
           users,
           currentPage,
           totalPage,
         });
       } else {
         return res.json({
-          status: "success",
+          status: 200,
           totalUsers: totalUsers,
           data: users,
         });
@@ -185,7 +119,7 @@ class AuthController {
 
       // Return the user's comments
       res.json({
-        status: "success",
+        status: 200,
         data: comments,
       });
     } catch (error) {
@@ -197,15 +131,5 @@ class AuthController {
     }
   }
 }
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: "phamtuan72az@gmail.com",
-    pass: "fljm hapz doac rtzu",
-  },
-});
 
 module.exports = new AuthController();

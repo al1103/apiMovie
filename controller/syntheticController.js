@@ -5,20 +5,19 @@ const bcrypt = require("bcryptjs");
 class syntheticController {
   async getUser(req, res) {
     try {
-      const user = await User.findOne({ _id: req.params.id }).populate("package");
+      const user = await User.findOne({ _id: req.params.id });
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Destructure user._doc to remove password from response
       const { password, ...userData } = user._doc;
-      
+
       res.status(200).json({
         status: "success",
         data: userData, // Use a different variable name to avoid conflicts
       });
-      
     } catch (error) {
       res.status(500).json({ error: "Internal Server Error" });
     }
@@ -117,56 +116,59 @@ class syntheticController {
   async UpdateUser(req, res) {
     try {
       const _id = req.params.id;
-      const { password, newPassword, avatar, ...otherInfo } = req.body; // Lấy các thông tin còn lại ngoài password, newPassword và avatar
-      const user = await User.findOne({ _id });
+      const data = req.body;
+      const updatedUser = await User.findByIdAndUpdate(_id, data, {
+        new: true,
+      });
 
-      if (!user) {
-        return res
-          .status(401)
-          .json("Người dùng không tồn tại hoặc không có quyền truy cập");
-      }
-
-      if (newPassword) {
-        if (user.password !== password) {
-          return res.status(401).json("Mật khẩu cũ không chính xác");
-        }
-        user.password = newPassword;
-      }
-
-      if (avatar) {
-        user.avatar = avatar;
-      }
-
-      // Cập nhật các thông tin khác nếu được cung cấp
-      if (Object.keys(otherInfo).length > 0) {
-        for (let key in otherInfo) {
-          user[key] = otherInfo[key];
-        }
-      }
-
-      const data = await User.updateOne({ _id }, user);
-
-      if (data.nModified === 0) {
+      if (!updatedUser) {
         return res.status(404).json({
-          message: "Không tìm thấy người dùng hoặc không có sự thay đổi",
+          status: "fail",
+          message: "Người dùng không tồn tại",
         });
       }
 
-      const token = jwt.sign(
-        { userId: user._id, role: user.role },
-        "zilong-zhou",
-        {
-          expiresIn: "24h",
-        }
-      );
-
       res.status(200).json({
         status: "success",
-        token: token,
         message: "Thông tin người dùng đã được cập nhật",
+        data: updatedUser,
       });
     } catch (error) {
-      res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi máy chủ nội bộ",
+        error: error.message,
+      });
+    }
+  }
+  async deleteUser(req, res) {
+    // Sử dụng async function cho rõ ràng
+    try {
+      const _id = req.params.id;
+
+
+      const deletedUser = await User.findByIdAndDelete(_id);
+
+      if (deletedUser) {
+        res.status(200).json({
+          status: 200,
+          message: "Người dùng đã được xóa",
+          data: deletedUser,
+        });
+      } else {
+        res.status(404).json({
+          status: "fail",
+          message: "Người dùng không tồn tại",
+        });
+      }
+    } catch (error) {
+      // Xử lý lỗi chung
+      console.error(error); // Ghi log lỗi để dễ debug sau này
+      res.status(500).json({
+        // Trả về lỗi server
+        status: "error",
+        message: "Đã xảy ra lỗi khi xóa người dùng",
+      });
     }
   }
 }

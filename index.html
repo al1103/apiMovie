@@ -8,83 +8,59 @@
 
   <body>
     <style>
-      /* Styles for the navigation container */
-      .navigation-container {
-        justify-content: center;
-        display: flex;
+      .code-snippet {
+        position: relative;
+        border: 1px solid #ddd;
+        background-color: #f7f7f7;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
-      /* Styles for navigation links */
-      .navigation-link {
-        margin: 0 24px;
-        min-width: 0;
-        white-space: nowrap;
+      pre {
+        margin: 0;
       }
 
-      /* Styles for navigation items */
-      .navigation-item {
-        display: flex;
-        flex-wrap: wrap;
-      }
-
-      /* Styles for clickable elements */
-      .clickable {
+      .copy-button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding: 5px 10px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 3px;
         cursor: pointer;
-      }
-
-      /* Styles for button-like elements */
-      .button-like {
-        padding: 8px 16px;
-        border-radius: 100px;
-        transition: background 300ms ease;
-        border: 1px solid #f2f2f2;
-        background-color: #f2f2f2;
-        color: #242424;
+        font-family: Arial, sans-serif;
         font-size: 14px;
-        font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
-        line-height: 20px;
+        text-transform: uppercase;
+        transition: background-color 0.3s ease;
       }
 
-      /* Styles for responsive layout */
-      @media screen and (min-width: 1080px) {
-        .navigation-container {
-          max-width: 680px;
-        }
-        .navigation-item {
-          max-width: 680px;
-        }
+      .copy-button:hover {
+        background-color: #0056b3;
       }
     </style>
-
-    <!-- Navigation Section -->
-    <div class="navigation-container">
-      <div class="navigation-item">
-        <div class="navigation-link">
-          <a class="clickable" rel="noopener follow" href="/tag/ui?source=post_page-----665b960daf21---------------ui-----------------">
-            <div class="button-like">UI</div>
-          </a>
-        </div>
-        <div class="navigation-link">
-          <a class="clickable" rel="noopener follow" href="/tag/code?source=post_page-----665b960daf21---------------code-----------------">
-            <div class="button-like">Code</div>
-          </a>
-        </div>
-        <div class="navigation-link">
-          <a class="clickable" rel="noopener follow" href="/tag/development?source=post_page-----665b960daf21---------------development-----------------">
-            <div class="button-like">Development</div>
-          </a>
-        </div>
-        <div class="navigation-link">
-          <a class="clickable" rel="noopener follow" href="/tag/ux?source=post_page-----665b960daf21---------------ux-----------------">
-            <div class="button-like">UX</div>
-          </a>
-        </div>
-        <div class="navigation-link">
-          <a class="clickable" rel="noopener follow" href="/tag/codepen?source=post_page-----665b960daf21---------------codepen-----------------">
-            <div class="button-like">Codepen</div>
-          </a>
-        </div>
-      </div>
+    <div class="code-snippet">
+      <pre>
+          <code>
+            abcscs
+          </code>
+      </pre>
+      <button class="copy-button" onclick="copyCode()">Copy</button>
     </div>
   </body>
+  <script>
+    function copyCode() {
+      const codeElement = document.querySelector(".code-snippet code");
+      const range = document.createRange();
+      range.selectNode(codeElement);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand("copy");
+      window.getSelection().removeAllRanges();
+      alert("Copied to clipboard");
+    }
+  </script>
 </html>

@@ -9,10 +9,6 @@ const commentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User", 
   },
-  Movie: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Movie", 
-  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -20,7 +16,7 @@ const commentSchema = new mongoose.Schema({
   
 });
 
-commentSchema.index({ movie: 1 }); 
+commentSchema.index({ blog: 1 }); 
 commentSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Comment", commentSchema);
