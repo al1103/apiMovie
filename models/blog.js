@@ -10,7 +10,7 @@ const blogPostSchema = new mongoose.Schema({
   description: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  content: { type: String},
+  content: { type: String },
   authorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

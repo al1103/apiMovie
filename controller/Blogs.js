@@ -5,10 +5,9 @@ const Banner = require("../models/Banner");
 class BlogController {
   async getAllBlog(req, res) {
     try {
-      const page = parseInt(req.body.page, 10) || 1; // Default to page 1 if not provided
-      const limit = parseInt(req.body.limit, 10) || 10; // Default to 10 posts per page if not provided
+      const page = parseInt(req.query.page, 10) || 1; // Default to page 1 if not provided
+      const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 posts per page if not provided
       const skip = (page - 1) * limit; // Calculate the number of documents to skip
-      console.log(req.body);
       const totalPosts = await Blogs.countDocuments(); // Get total number of posts
       const posts = await Blogs.find()
         .populate({

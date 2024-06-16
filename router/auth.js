@@ -5,10 +5,9 @@ const authController = require("../controller/authControllers");
 
 // User Management
 router.get("/users", authController.getListUsers);
-router.get("/Post", Blog.getAllBlog);
 router.post("/Post", authController.createPost);
 router.get("/Post/:id", authController.getOneBlogAdmin);
-router.put("/Post/:id", authController.UpdateBlog);
+router.put("/Post/:slug", authController.UpdateBlog);
 router.delete("/Post/:slug", authController.deleteBlog);
 
 // Comment Management

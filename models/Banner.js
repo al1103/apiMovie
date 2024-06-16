@@ -11,7 +11,6 @@ const bannerSchema = new mongoose.Schema({
       message: "Banner must contain exactly 3 image links.",
     },
   },
-  // ... (các trường khác nếu cần)
 });
 
 module.exports = mongoose.model("Banner", bannerSchema);

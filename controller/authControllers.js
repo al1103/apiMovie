@@ -41,11 +41,11 @@ class AuthController {
       res.json({ status: 200, message: "đã được xóa" });
     } catch (error) {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
-    } 
+    }
   }
   async UpdateBlog(req, res) {
     try {
-      const data = await Blogs.updateOne({ _id: req.params.id }, req.body);
+      const data = await Blogs.updateOne({ slug: req.params.slug }, req.body);
       if (data.nModified === 0) {
         return res.status(404).json({ message: "không tồn tại" });
       }

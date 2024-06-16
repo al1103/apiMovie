@@ -1,23 +1,24 @@
 const authRouter = require("./auth");
 const usersRouter = require("./users");
 const syntheticRouter = require("./synthetic");
-
-const authenToken = require("../controller/middlewareToken");
 const Blogs = require("./Blog");
+const authenticateToken = require("../controller/middlewareToken"); // Adjust based on your export
 
-// function authorize(roles) {
-//   return (req, res, next) => {
-//     if (roles.includes(req.userRole)) {
-//       next();
-//     } else {
-//       return res.status(403).json({ error: "Unauthorized" });
-//     }
-//   };
-// }
+function authorize(allowedRoles) {
+  return (req, res, next) => {
+    const userRole = req.isRole; // Get userRole from authenticateToken middleware
+    if (userRole.includes(userRole)) {
+      next(); // Role is allowed, proceed to the next middleware or route handler
+    } else {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+  };
+}
+
 function routes(app) {
-  app.use("/auth",  authRouter);
+  app.use("/auth", authenticateToken, authorize("admin"), authRouter); // Authentication routes, no need for authorization here
   app.use("/users", usersRouter);
-  app.use("/synthetic", syntheticRouter);
+  app.use("/synthetic", authorize("user"), syntheticRouter); // Require authentication and specific role
   app.use("/", Blogs);
 }
 

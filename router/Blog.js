@@ -5,7 +5,7 @@ router.get("/comments/:id", BlogController.getComments);
 router.get("/search", BlogController.SearchPosts);
 router.put("/updatebanner", BlogController.updateBanner);
 router.get("/getbanner", BlogController.getBanner);
+router.get("/Post", BlogController.getAllBlog);
 router.get("/:slug", BlogController.getOnePosts);
-// router.get("/", BlogController.index);
 
 module.exports = router;
