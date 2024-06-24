@@ -59,7 +59,8 @@ class BlogController {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
-      const nameQuery = req.query.name ? req.query.name.trim() : "";
+      const nameQuery = req.query.query ? req.query.query.trim() : "";
+      console.log(nameQuery);
 
       // Lọc  theo tên
       let Posts = await Blogs.find(
@@ -129,6 +130,29 @@ class BlogController {
     } catch (error) {
       console.error("Error fetching banner:", error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+  async getRelatedArticles(req, res) {
+    const id = req.params.id;
+    console.log(id);
+
+    try {
+      const currentArticle = await Blogs.findById(id);
+      if (!currentArticle) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      // Lấy 4 bài viết liên quan khác
+      const relatedArticles = await Blogs.find({
+        _id: { $ne: id }, // Loại bỏ bài viết hiện tại
+      }).limit(4);
+
+      res.json({
+        status: 200,
+        data: relatedArticles,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching related articles" });
     }
   }
 }

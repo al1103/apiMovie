@@ -77,6 +77,7 @@ class UserController {
       );
 
       const data = {
+        status: 200,
         token,
         user: {
           _id: user._id,

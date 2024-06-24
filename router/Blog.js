@@ -7,5 +7,6 @@ router.put("/updatebanner", BlogController.updateBanner);
 router.get("/getbanner", BlogController.getBanner);
 router.get("/Post", BlogController.getAllBlog);
 router.get("/:slug", BlogController.getOnePosts);
+router.get("/related-articles/:id", BlogController.getRelatedArticles);
 
 module.exports = router;
