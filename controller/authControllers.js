@@ -2,19 +2,48 @@ const User = require("../models/users_model");
 const Comment = require("../models/Comment");
 const Blogs = require("../models/blog");
 const jwt = require("jsonwebtoken");
-
+const BlogPost = require("../models/blog");
+const Category = require("../models/category");
 class AuthController {
   async createPost(req, res, next) {
     try {
-      const token = req.headers.authorization?.split(" ")[1];
-      const decoded = jwt.verify(token, "zilong-zhou"); // Add type assertion for clarity
+      const authHeader = req.headers.authorization;
 
-      if (!token) {
+      if (!authHeader) {
         return res.status(401).json({
           status: "fail",
           message: "Unauthorized - Missing token",
         });
       }
+
+      const token = authHeader.split(" ")[1];
+      let decoded;
+
+      try {
+        decoded = jwt.verify(token, "zilong-zhou"); // Add type assertion for clarity
+      } catch (err) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Unauthorized - Invalid token",
+        });
+      }
+
+      const postId = req.body.postId;
+      const categoryId = req.body.categoryId;
+      const blogPost = await BlogPost.findById(postId);
+      const category = await Category.findById(categoryId);
+
+      if (!blogPost || !category) {
+        return res.status(404).json({
+          status: "fail",
+          message: "Post or category not found",
+        });
+      }
+
+      BlogPost.categoryIds.push(category._id);
+      Category.postIds.push(blogPost._id);
+      await blogPost.save();
+      await category.save();
 
       const id = decoded.userId;
       const newBlog = new Blogs({
@@ -25,13 +54,14 @@ class AuthController {
       await newBlog.save(); // Await the save operation and get the result
 
       res.status(201).json({
-        status: 200,
+        status: "success",
         message: "Blog created successfully",
       });
     } catch (error) {
       next(error); // Pass the error to the error handling middleware
     }
   }
+
   async deleteBlog(req, res) {
     try {
       const data = await Blogs.deleteOne({ slug: req.params.slug });

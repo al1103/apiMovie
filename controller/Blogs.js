@@ -1,6 +1,8 @@
 // const Comment = require("../models/Comment");
 const Blogs = require("../models/blog");
 const Banner = require("../models/Banner");
+const Category = require("../models/category");
+const PostCategories = require("../models/PostCategories");
 
 class BlogController {
   async getAllBlog(req, res) {
@@ -142,7 +144,6 @@ class BlogController {
         return res.status(404).json({ message: "Article not found" });
       }
 
-      // Lấy 4 bài viết liên quan khác
       const relatedArticles = await Blogs.find({
         _id: { $ne: id }, // Loại bỏ bài viết hiện tại
       }).limit(4);
@@ -153,6 +154,45 @@ class BlogController {
       });
     } catch (error) {
       res.status(500).json({ message: "Error fetching related articles" });
+    }
+  }
+  async getCategory(req, res) {
+    try {
+      const categories = await Category.find();
+      res.status(200).json({
+        status: 200,
+        data: categories,
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Internal server error", error: error.message });
+    }
+  }
+  async getPostsByCategoryIds(categoryIds, res) {
+    try {
+      const postCategories = await PostCategory.find({
+        categoryId: { $in: categoryIds },
+      });
+
+      // Lấy mảng postIds từ kết quả truy vấn
+      const postIds = postCategories.postId;
+
+      const posts = await BlogPost.find({ _id: postIds }).populate(
+        "categoryIds"
+      );
+
+      // Trả về kết quả thành công
+      res.status(200).json({ status: 200, data: posts });
+    } catch (error) {
+      console.error("Lỗi khi truy vấn bài viết theo danh mục:", error);
+
+      // Trả về lỗi chi tiết hơn cho client
+      res.status(500).json({
+        status: 500,
+        error: "Internal Server Error",
+        message: error.message,
+      });
     }
   }
 }
