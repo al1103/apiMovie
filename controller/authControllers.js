@@ -2,8 +2,7 @@ const User = require("../models/users_model");
 const Comment = require("../models/Comment");
 const Blogs = require("../models/blog");
 const jwt = require("jsonwebtoken");
-const BlogPost = require("../models/blog");
-const Category = require("../models/category");
+const BlogPost = require("../models/PostCategories");
 class AuthController {
   async createPost(req, res, next) {
     try {
@@ -20,7 +19,7 @@ class AuthController {
       let decoded;
 
       try {
-        decoded = jwt.verify(token, "zilong-zhou"); // Add type assertion for clarity
+        decoded = jwt.verify(token, "zilong-zhou");
       } catch (err) {
         return res.status(401).json({
           status: "fail",
@@ -28,37 +27,35 @@ class AuthController {
         });
       }
 
-      const postId = req.body.postId;
-      const categoryId = req.body.categoryId;
-      const blogPost = await BlogPost.findById(postId);
-      const category = await Category.findById(categoryId);
+      const userId = decoded.userId;
+      const newBlog = new Blogs({
+        ...req.body,
+        authorId: userId,
+      });
 
-      if (!blogPost || !category) {
-        return res.status(404).json({
+      await newBlog.save();
+
+      const categoryIds = req.body.category;
+      if (!Array.isArray(categoryIds)) {
+        return res.status(400).json({
           status: "fail",
-          message: "Post or category not found",
+          message: "Category should be an array of IDs",
         });
       }
 
-      BlogPost.categoryIds.push(category._id);
-      Category.postIds.push(blogPost._id);
-      await blogPost.save();
-      await category.save();
-
-      const id = decoded.userId;
-      const newBlog = new Blogs({
-        ...req.body,
-        authorId: id, // Use the userId from the decoded token
+      const newBlogPost = new BlogPost({
+        postId: newBlog._id,
+        categoryIds: categoryIds,
       });
 
-      await newBlog.save(); // Await the save operation and get the result
+      await newBlogPost.save();
 
       res.status(201).json({
         status: "success",
         message: "Blog created successfully",
       });
     } catch (error) {
-      next(error); // Pass the error to the error handling middleware
+      next(error);
     }
   }
 
@@ -75,15 +72,43 @@ class AuthController {
   }
   async UpdateBlog(req, res) {
     try {
-      const data = await Blogs.updateOne({ slug: req.params.slug }, req.body);
-      if (data.nModified === 0) {
-        return res.status(404).json({ message: "không tồn tại" });
+      const { slug } = req.params;
+      const update = req.body;
+
+      // Fetch the original blog before updating
+      const originalBlog = await Blogs.findOne({ slug: slug });
+      if (!originalBlog) {
+        return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
-      res.json({ status: 200, message: "đã được cập nhật" });
+
+      // Construct the update data
+      const data = { ...update, category: update.category };
+
+      // Update the blog
+      const updatedBlog = await Blogs.findOneAndUpdate({ slug: slug }, data, {
+        new: true,
+      });
+
+      // If the blog does not exist
+      if (!updatedBlog) {
+        return res.status(404).json({ message: "Không tìm thấy bài viết" });
+      }
+
+      // Update related blog posts
+      await BlogPost.updateMany(
+        { postId: updatedBlog._id },
+        { $set: { categoryIds: update.category } }
+      );
+
+      res
+        .status(200)
+        .json({ message: "Bài viết đã được cập nhật", updatedBlog });
     } catch (error) {
+      console.error("Lỗi khi cập nhật bài viết:", error);
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
+
   async getOneBlogAdmin(req, res) {
     try {
       const id = req.params.id;

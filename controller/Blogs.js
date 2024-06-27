@@ -43,14 +43,25 @@ class BlogController {
 
   async getOnePosts(req, res, next) {
     try {
-      const Post = await Blogs.findOne({
-        slug: req.params.slug,
-      }).populate("authorId");
+      const Post = await Blogs.findOne({ slug: req.params.slug })
+        .populate("authorId")
+        .exec();
+
       if (!Post) {
-        return res.status(404).json({ message: "Không tìm thấy " });
+        return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
 
-      res.json({ status: 200, data: Post });
+      const data = await PostCategories.find({ blogId: Post._id })
+        .populate("categoryIds")
+        .exec();
+      const dataCategory = [];
+      data.forEach((postCategory) => {
+        postCategory.categoryIds.forEach((category) => {
+          dataCategory.push(category);
+        });
+      });
+
+      res.json({ status: 200, data: { Post, dataCategory } });
     } catch (error) {
       next(error);
     }
@@ -136,7 +147,6 @@ class BlogController {
   }
   async getRelatedArticles(req, res) {
     const id = req.params.id;
-    console.log(id);
 
     try {
       const currentArticle = await Blogs.findById(id);

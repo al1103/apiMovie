@@ -6,9 +6,9 @@ router.get("/search", BlogController.SearchPosts);
 router.put("/updatebanner", BlogController.updateBanner);
 router.get("/getbanner", BlogController.getBanner);
 router.get("/Post", BlogController.getAllBlog);
-router.get("/:slug", BlogController.getOnePosts);
-router.get("/related-articles/:id", BlogController.getRelatedArticles);
 router.get("/getCategories", BlogController.getCategory);
 router.get("/getPostsByCategories/:id", BlogController.getPostsByCategoryIds);
+router.get("/related-articles/:id", BlogController.getRelatedArticles);
+router.get("/:slug", BlogController.getOnePosts);
 
 module.exports = router;
