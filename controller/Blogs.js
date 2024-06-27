@@ -10,7 +10,8 @@ class BlogController {
       const page = parseInt(req.query.page, 10) || 1; // Default to page 1 if not provided
       const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 posts per page if not provided
       const skip = (page - 1) * limit; // Calculate the number of documents to skip
-      const totalPosts = await Blogs.countDocuments(); // Get total number of posts
+      const totalPosts = await Blogs.countDocuments();
+      const numberOfPages = Math.ceil(totalPosts / limit);
       const posts = await Blogs.find()
         .populate({
           path: "authorId",
@@ -29,7 +30,7 @@ class BlogController {
       res.status(200).json({
         status: 200,
         count: posts.length,
-        totalPosts, // Include total number of posts
+        numberOfPages, // Include total number of posts
         data: posts,
       });
     } catch (error) {
@@ -179,25 +180,16 @@ class BlogController {
         .json({ message: "Internal server error", error: error.message });
     }
   }
-  async getPostsByCategoryIds(categoryIds, res) {
+  async getPostsByCategoryIds(req, res) {
     try {
-      const postCategories = await PostCategory.find({
-        categoryId: { $in: categoryIds },
-      });
+      const posts = await PostCategories.find({
+        categoryIds: { $in: req.params.id },
+      }).populate("postId");
 
-      // Lấy mảng postIds từ kết quả truy vấn
-      const postIds = postCategories.postId;
-
-      const posts = await BlogPost.find({ _id: postIds }).populate(
-        "categoryIds"
-      );
-
-      // Trả về kết quả thành công
       res.status(200).json({ status: 200, data: posts });
     } catch (error) {
       console.error("Lỗi khi truy vấn bài viết theo danh mục:", error);
 
-      // Trả về lỗi chi tiết hơn cho client
       res.status(500).json({
         status: 500,
         error: "Internal Server Error",
