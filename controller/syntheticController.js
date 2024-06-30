@@ -146,7 +146,6 @@ class syntheticController {
     try {
       const _id = req.params.id;
 
-
       const deletedUser = await User.findByIdAndDelete(_id);
 
       if (deletedUser) {

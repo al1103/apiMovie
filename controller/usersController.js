@@ -6,18 +6,12 @@ class UserController {
   async createUser(req, res) {
     try {
       const { username, email, password } = req.body;
-
-      // Kiểm tra các trường bắt buộc
       if (!username || !email || !password) {
         return res.status(400).json({ error: "Missing required fields." });
       }
-
-      // Kiểm tra định dạng email
       if (!email.match(/^\w+@[a-zA-Z\d\-.]+\.[a-zA-Z]{2,}$/)) {
         return res.status(400).json({ error: "Invalid email format." });
       }
-
-      // Kiểm tra username và email đã tồn tại chưa
       const existingUser = await User.findOne({
         $or: [{ username }, { email }],
       });
@@ -29,8 +23,6 @@ class UserController {
               : "Email already in use.",
         });
       }
-
-      // Kiểm tra độ mạnh của mật khẩu
       if (
         !password.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,40}$/)
       ) {
@@ -38,7 +30,6 @@ class UserController {
           .status(400)
           .json({ error: "Password must meet security requirements." });
       }
-
       // Hash mật khẩu
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -55,9 +46,8 @@ class UserController {
 
   async authenticateUser(req, res) {
     try {
-      const { email, password } = req.body;
-
-      const user = await User.findOne({ email });
+      const { username, password } = req.body;
+      const user = await User.findOne({ username });
       if (!user) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
@@ -73,7 +63,7 @@ class UserController {
           role: user.role,
         },
         "zilong-zhou", // Replace with a secure secret key
-        { expiresIn: "24h" }
+        { expiresIn: "7d" }
       );
 
       const data = {

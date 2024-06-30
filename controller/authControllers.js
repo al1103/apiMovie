@@ -33,10 +33,12 @@ class AuthController {
         authorId: userId,
       });
 
+      await newBlog.validate();
+
       await newBlog.save();
 
       const categoryIds = req.body.category;
-      if (!Array.isArray(categoryIds)) {
+      if (!categoryIds) {
         return res.status(400).json({
           status: "fail",
           message: "Category should be an array of IDs",
@@ -49,9 +51,8 @@ class AuthController {
       });
 
       await newBlogPost.save();
-
       res.status(201).json({
-        status: "success",
+        status: "201",
         message: "Blog created successfully",
       });
     } catch (error) {
@@ -73,28 +74,24 @@ class AuthController {
   async UpdateBlog(req, res) {
     try {
       const { slug } = req.params;
+
       const update = req.body;
 
-      // Fetch the original blog before updating
       const originalBlog = await Blogs.findOne({ slug: slug });
       if (!originalBlog) {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
-
-      // Construct the update data
-      const data = { ...update, category: update.category };
-
-      // Update the blog
+      const data = {
+        ...update,
+      };
       const updatedBlog = await Blogs.findOneAndUpdate({ slug: slug }, data, {
         new: true,
       });
 
-      // If the blog does not exist
       if (!updatedBlog) {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
 
-      // Update related blog posts
       await BlogPost.updateMany(
         { postId: updatedBlog._id },
         { $set: { categoryIds: update.category } }
@@ -114,8 +111,6 @@ class AuthController {
       const id = req.params.id;
 
       const BlogDetail = await Blogs.find({ _id: id });
-      console.log(BlogDetail);
-
       if (!BlogDetail) {
         return res.status(404).json({ message: "Blog not found" }); // Handle not found case
       }
