@@ -93,17 +93,26 @@ class BlogController {
       if (!Post) {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
-
       const data = await PostCategories.find({ blogId: Post._id })
-        .populate("categoryIds")
-        .limit(8)
+        .populate({
+          path: "categoryIds",
+          select: "", // Exclude all fields in categoryIds
+        })
         .populate({
           path: "postId",
-          select: "-content", // Exclude the 'content' field
+          select: "-content", // Exclude the 'content' field from postId
+          populate: {
+            path: "authorId", // Populate authorId within postId
+            select: "username _id avatar", // Include only specific fields from authorId
+          },
         })
+        .limit(8)
         .exec();
 
-      res.json({ status: 200, data: { Post, data } });
+      const relatedArticles = data.map((item) => {
+        return item.postId;
+      });
+      res.json({ status: 200, data: { Post, relatedArticles } });
     } catch (error) {
       next(error);
     }
