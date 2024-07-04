@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const BlogPost = require("../models/PostCategories");
 const category = require("../models/category");
 const PostCategories = require("../models/PostCategories");
+const client = require("../models/client");
 class AuthController {
   async createPost(req, res, next) {
     try {
@@ -88,17 +89,14 @@ class AuthController {
   async UpdateBlog(req, res) {
     try {
       const { slug } = req.params;
-
       const update = req.body;
 
       const originalBlog = await Blogs.findOne({ slug: slug });
       if (!originalBlog) {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
-      const data = {
-        ...update,
-      };
-      const updatedBlog = await Blogs.findOneAndUpdate({ slug: slug }, data, {
+
+      const updatedBlog = await Blogs.findOneAndUpdate({ slug: slug }, update, {
         new: true,
       });
 
@@ -106,12 +104,15 @@ class AuthController {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
 
-      const categoryIds = update.category;
-      console.log(categoryIds);
-      await PostCategories.updateMany(
-        { postId: updatedBlog._id },
-        { $set: { categoryIds: update.category } }
-      );
+      if (update.category) {
+        await PostCategories.findOneAndUpdate(
+          { postId: updatedBlog._id },
+          { categoryIds: update.category },
+          { new: true }
+        );
+
+        console.log("Updated categories for blog post:", updatedBlog._id);
+      }
 
       res
         .status(200)
@@ -144,37 +145,30 @@ class AuthController {
       const currentPage = parseInt(req.query.page) || 1;
       const perPage = 8;
 
-      const skip = (currentPage - 1) * perPage + 1;
+      const skip = (currentPage - 1) * perPage;
 
       if (currentPage < 1) {
         return res.status(400).json({ error: "Invalid page number" });
       }
 
-      const users = await User.find({}).skip(skip).limit(perPage);
-      const totalUsers = await User.countDocuments();
+      const users = await client.find({}).skip(skip).limit(perPage);
+      const totalUsers = await client.countDocuments();
       const totalPage = Math.ceil(totalUsers / perPage);
-      const hasQuery = Object.keys(req.query).length > 0;
 
-      if (hasQuery) {
-        return res.json({
-          status: 200,
-          users,
-          currentPage,
-          totalPage,
-        });
-      } else {
-        return res.json({
+      res.json({
+        data: {
           status: 200,
           totalUsers: totalUsers,
-          data: users,
-        });
-      }
+          users: users,
+          currentPage,
+          totalPage,
+        },
+      });
     } catch (error) {
       console.error("Error fetching users:", error);
-      return res.status(500).json({ error: "An error occurred." }); // More specific message
+      return res.status(500).json({ error: "An error occurred." });
     }
   }
-
   async getComments(req, res) {
     try {
       const comments = await Comment.find({ User: req.params.id });

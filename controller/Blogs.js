@@ -102,8 +102,6 @@ class BlogController {
 
       const categories = await Category.find({ _id: { $in: categoryIds } });
 
-      console.log(categories);
-
       const relatedPosts = await PostCategories.find({ blogId: post._id })
         .populate({
           path: "categoryIds",
