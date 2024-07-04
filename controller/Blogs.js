@@ -86,33 +86,38 @@ class BlogController {
 
   async getOnePosts(req, res, next) {
     try {
-      const Post = await Blogs.findOne({ slug: req.params.slug })
-        .populate("authorId")
+      const post = await Blogs.findOne({ slug: req.params.slug })
+        .populate({
+          path: "authorId",
+          select: "username",
+        })
         .exec();
 
-      if (!Post) {
+      if (!post) {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
-      const data = await PostCategories.find({ blogId: Post._id })
+
+      const postCategories = await PostCategories.find({ postId: post._id });
+      const categoryIds = postCategories.map((item) => item.categoryIds);
+
+      const categories = await Category.find({ _id: { $in: categoryIds } });
+
+      console.log(categories);
+
+      const relatedPosts = await PostCategories.find({ blogId: post._id })
         .populate({
           path: "categoryIds",
-          select: "", // Exclude all fields in categoryIds
         })
         .populate({
           path: "postId",
           select: "-content", // Exclude the 'content' field from postId
-          populate: {
-            path: "authorId", // Populate authorId within postId
-            select: "username _id avatar", // Include only specific fields from authorId
-          },
         })
         .limit(8)
         .exec();
 
-      const relatedArticles = data.map((item) => {
-        return item.postId;
-      });
-      res.json({ status: 200, data: { Post, relatedArticles } });
+      const relatedArticles = relatedPosts.map((item) => item.postId);
+
+      res.json({ status: 200, data: { post, categories, relatedArticles } });
     } catch (error) {
       next(error);
     }

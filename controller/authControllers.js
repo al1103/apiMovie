@@ -3,6 +3,8 @@ const Comment = require("../models/Comment");
 const Blogs = require("../models/blog");
 const jwt = require("jsonwebtoken");
 const BlogPost = require("../models/PostCategories");
+const category = require("../models/category");
+const PostCategories = require("../models/PostCategories");
 class AuthController {
   async createPost(req, res, next) {
     try {
@@ -26,7 +28,20 @@ class AuthController {
           message: "Unauthorized - Invalid token",
         });
       }
-
+      const checkSlug = await Blogs.findOne({ slug: req.body.slug });
+      if (checkSlug) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Slug already exists",
+        });
+      }
+      const checkTitle = await Blogs.findOne({ title: req.body.title });
+      if (checkTitle) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Title already exists",
+        });
+      }
       const userId = decoded.userId;
       const newBlog = new Blogs({
         ...req.body,
@@ -45,11 +60,10 @@ class AuthController {
         });
       }
 
-      const newBlogPost = new BlogPost({
+      const newBlogPost = new PostCategories({
         postId: newBlog._id,
         categoryIds: categoryIds,
       });
-
       await newBlogPost.save();
       res.status(201).json({
         status: "201",
@@ -92,7 +106,9 @@ class AuthController {
         return res.status(404).json({ message: "Không tìm thấy bài viết" });
       }
 
-      await BlogPost.updateMany(
+      const categoryIds = update.category;
+      console.log(categoryIds);
+      await PostCategories.updateMany(
         { postId: updatedBlog._id },
         { $set: { categoryIds: update.category } }
       );
