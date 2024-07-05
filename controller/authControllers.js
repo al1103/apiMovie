@@ -213,6 +213,40 @@ class AuthController {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
+  async deleteClient(req, res) {
+    try {
+      const id = req.params.id;
+      const deletedClient = await client.findByIdAndDelete(id);
+      if (!deletedClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      res.status(200).json({ status: 200 });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async getClients(req, res) {
+    try {
+      const dataClient = await client.find();
+      res.status(200).json({ status: 200, data: dataClient });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async deleteImagesInAlbum(req, res) {
+    try {
+      const images = req.query.id;
+      const Image = album.findOne({ _id: images });
+      if (!Image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      await Image.remove();
+      res.status(200).json({ status: 200 });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
 }
 
 module.exports = new AuthController();

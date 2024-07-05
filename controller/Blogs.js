@@ -4,6 +4,7 @@ const Banner = require("../models/Banner");
 const Category = require("../models/category");
 const PostCategories = require("../models/PostCategories");
 const Client = require("../models/client");
+const album = require("../models/album");
 
 class BlogController {
   async getAllBlog(req, res) {
@@ -150,10 +151,9 @@ class BlogController {
 
   async updateBanner(req, res, next) {
     try {
-      const newImages = req.body; // Lấy dữ liệu ảnh mới từ body request
-      // Tìm và cập nhật banner đầu tiên
+      const newImages = req.body;
       const updatedBanner = await Banner.findOneAndUpdate(
-        {}, // Điều kiện tìm kiếm: không có điều kiện, tìm phần tử đầu tiên
+        {},
         { $set: { images: newImages } },
         { new: true }
       );
@@ -244,13 +244,42 @@ class BlogController {
       res.status(500).json({ error: "Internal server error" });
     }
   }
-
-  async getClients(req, res) {
+  async getAllImagesInAlbum(req, res) {
     try {
-      const dataClient = await Client.find();
-      res.status(200).json({ status: 200, data: dataClient });
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      const totalImages = await album.countDocuments();
+
+      const images = await album.find().skip(skip).limit(limit);
+
+      res.status(200).json({
+        status: 200,
+        data: images,
+        totalImages,
+        currentPage: page,
+        totalPages: Math.ceil(totalImages / limit),
+      });
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async postToAlbum(req, res) {
+    try {
+      const images = req.body;
+
+      const newAlbum = new album(images);
+      await newAlbum.save();
+
+      res.status(201).json({
+        status: 200,
+        data: newAlbum,
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: "error",
+        message: "Internal server error",
+      });
     }
   }
 }
