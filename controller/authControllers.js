@@ -29,20 +29,23 @@ class AuthController {
           message: "Unauthorized - Invalid token",
         });
       }
+
       const checkSlug = await Blogs.findOne({ slug: req.body.slug });
       if (checkSlug) {
         return res.status(400).json({
           status: "fail",
-          message: "Slug already exists",
+          message: "Slug đã tồn tại",
         });
       }
+
       const checkTitle = await Blogs.findOne({ title: req.body.title });
       if (checkTitle) {
         return res.status(400).json({
           status: "fail",
-          message: "Title already exists",
+          message: "Tiêu đề đã tồn tại",
         });
       }
+
       const userId = decoded.userId;
       const newBlog = new Blogs({
         ...req.body,
@@ -54,10 +57,10 @@ class AuthController {
       await newBlog.save();
 
       const categoryIds = req.body.category;
-      if (!categoryIds) {
+      if (!Array.isArray(categoryIds)) {
         return res.status(400).json({
           status: "fail",
-          message: "Category should be an array of IDs",
+          message: "Danh mục phải là một dãy ID",
         });
       }
 
@@ -66,11 +69,28 @@ class AuthController {
         categoryIds: categoryIds,
       });
       await newBlogPost.save();
+
       res.status(201).json({
         status: "201",
-        message: "Blog created successfully",
+        message: "Bài viết được tạo thành công",
       });
     } catch (error) {
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          status: "fail",
+          message: "Validation Error - " + error.message,
+        });
+      }
+      if (error.name === "MongoError" && error.code === 11000) {
+        return res.status(409).json({
+          status: "fail",
+          message: "Lỗi khóa trùng lặp - " + error.message,
+        });
+      }
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi máy chủ nội bộ",
+      });
       next(error);
     }
   }
@@ -113,10 +133,13 @@ class AuthController {
 
         console.log("Updated categories for blog post:", updatedBlog._id);
       }
-
-      res
-        .status(200)
-        .json({ message: "Bài viết đã được cập nhật", updatedBlog });
+      res.status(200).json({
+        data: {
+          status: 200,
+          message: "Bài viết đã được cập nhật",
+          updatedBlog,
+        },
+      });
     } catch (error) {
       console.error("Lỗi khi cập nhật bài viết:", error);
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
