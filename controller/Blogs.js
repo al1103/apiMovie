@@ -252,13 +252,13 @@ class BlogController {
       const totalImages = await album.countDocuments();
 
       const images = await album.find().skip(skip).limit(limit);
-
       res.status(200).json({
-        status: 200,
-        data: images,
-        totalImages,
-        currentPage: page,
-        totalPages: Math.ceil(totalImages / limit),
+        data: {
+          status: 200,
+          data: images,
+          currentPage: page,
+          total: Math.ceil(totalImages / limit),
+        },
       });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -267,7 +267,6 @@ class BlogController {
   async postToAlbum(req, res) {
     try {
       const images = req.body;
-
       const newAlbum = new album(images);
       await newAlbum.save();
 
