@@ -7,10 +7,10 @@ const authController = require("../controller/authControllers");
 router.get("/Post/:id", authController.getOneBlogAdmin);
 router.put("/Post/:slug", authController.UpdateBlog);
 router.delete("/Post/:slug", authController.deleteBlog);
+router.delete("/Client/:id", authController.deleteClient);
+router.delete("/Album/:id", authController.deleteImagesInAlbum);
 router.get("/users", authController.getListUsers);
 router.post("/Post", authController.createPost);
-router.delete("/Client", authController.deleteClient);
 router.get("/Client", authController.getClients);
-router.delete("/Album", authController.deleteImagesInAlbum);
 
 module.exports = router;

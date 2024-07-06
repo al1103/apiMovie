@@ -18,7 +18,7 @@ function authorize(allowedRoles) {
 function routes(app) {
   app.use("/auth", authenticateToken, authorize("admin"), authRouter); // Authentication routes, no need for authorization here
   app.use("/users", usersRouter);
-  app.use("/synthetic", authorize("user"), syntheticRouter); // Require authentication and specific role
+  app.use("/synthetic", authorize("admin"), syntheticRouter); // Require authentication and specific role
   app.use("/", Blogs);
 }
 

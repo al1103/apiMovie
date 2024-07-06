@@ -2,6 +2,7 @@ const User = require("../models/users_model");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
+const client = require("../models/client");
 class syntheticController {
   async getUser(req, res) {
     try {
@@ -138,35 +139,6 @@ class syntheticController {
         status: "error",
         message: "Lỗi máy chủ nội bộ",
         error: error.message,
-      });
-    }
-  }
-  async deleteUser(req, res) {
-    // Sử dụng async function cho rõ ràng
-    try {
-      const _id = req.params.id;
-
-      const deletedUser = await User.findByIdAndDelete(_id);
-
-      if (deletedUser) {
-        res.status(200).json({
-          status: 200,
-          message: "Người dùng đã được xóa",
-          data: deletedUser,
-        });
-      } else {
-        res.status(404).json({
-          status: "fail",
-          message: "Người dùng không tồn tại",
-        });
-      }
-    } catch (error) {
-      // Xử lý lỗi chung
-      console.error(error); // Ghi log lỗi để dễ debug sau này
-      res.status(500).json({
-        // Trả về lỗi server
-        status: "error",
-        message: "Đã xảy ra lỗi khi xóa người dùng",
       });
     }
   }

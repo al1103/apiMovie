@@ -6,6 +6,7 @@ const BlogPost = require("../models/PostCategories");
 const category = require("../models/category");
 const PostCategories = require("../models/PostCategories");
 const client = require("../models/client");
+const album = require("../models/album");
 class AuthController {
   async createPost(req, res, next) {
     try {
@@ -236,8 +237,9 @@ class AuthController {
 
   async deleteImagesInAlbum(req, res) {
     try {
-      const images = req.query.id;
+      const images = req.params.id;
       const Image = album.findOne({ _id: images });
+      console.log(Image);
       if (!Image) {
         return res.status(404).json({ error: "Image not found" });
       }
@@ -245,6 +247,35 @@ class AuthController {
       res.status(200).json({ status: 200 });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  async deleteUser(req, res) {
+    try {
+      const _id = req.params.id;
+
+      const deletedUser = await client.findByIdAndDelete(_id);
+
+      if (deletedUser) {
+        res.status(200).json({
+          status: 200,
+          message: "Người dùng đã được xóa",
+          data: deletedUser,
+        });
+      } else {
+        res.status(404).json({
+          status: "fail",
+          message: "Người dùng không tồn tại",
+        });
+      }
+    } catch (error) {
+      // Xử lý lỗi chung
+      console.error(error); // Ghi log lỗi để dễ debug sau này
+      res.status(500).json({
+        // Trả về lỗi server
+        status: "error",
+        message: "Đã xảy ra lỗi khi xóa người dùng",
+      });
     }
   }
 }
