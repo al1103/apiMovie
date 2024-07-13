@@ -32,15 +32,13 @@ class BlogController {
       }
 
       res.status(200).json({
-        data: {
           content: posts,
           pagination: {
             current: page,
             pageSize: pageSize,
-            total: totalPosts,
+
             pages: numberOfPages,
           },
-        },
       });
     } catch (error) {
       console.error("Error fetching blog posts:", error);
@@ -69,12 +67,10 @@ class BlogController {
       }
 
       res.status(200).json({
-        data: {
           content: posts,
           pagination: {
-            total: totalPosts,
+            totalPage: totalPosts / limit,
           },
-        },
       });
     } catch (error) {
       console.error("Error fetching blog posts:", error);
@@ -253,34 +249,17 @@ class BlogController {
 
       const images = await album.find().skip(skip).limit(limit);
       res.status(200).json({
-        data: {
           status: 200,
           data: images,
           currentPage: page,
-          total: Math.ceil(totalImages / limit),
-        },
-      });
+          totalPage: Math.ceil(totalImages / limit),
+        
+    });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   }
-  async postToAlbum(req, res) {
-    try {
-      const images = req.body;
-      const newAlbum = new album(images);
-      await newAlbum.save();
-
-      res.status(201).json({
-        status: 200,
-        data: newAlbum,
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: "error",
-        message: "Internal server error",
-      });
-    }
-  }
+  
 }
 
 module.exports = new BlogController();

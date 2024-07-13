@@ -12,5 +12,6 @@ router.delete("/Album/:id", authController.deleteImagesInAlbum);
 router.get("/users", authController.getListUsers);
 router.post("/Post", authController.createPost);
 router.get("/Client", authController.getClients);
+router.post("/Album", authController.postToAlbum);
 
 module.exports = router;

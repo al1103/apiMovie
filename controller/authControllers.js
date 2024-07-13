@@ -134,13 +134,9 @@ class AuthController {
 
         console.log("Updated categories for blog post:", updatedBlog._id);
       }
-      res.status(200).json({
-        data: {
-          status: 200,
-          message: "Bài viết đã được cập nhật",
-          updatedBlog,
-        },
-      });
+      res.status(200).json({ status: 200,
+        message: "Bài viết đã được cập nhật",
+        updatedBlog});
     } catch (error) {
       console.error("Lỗi khi cập nhật bài viết:", error);
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
@@ -180,13 +176,10 @@ class AuthController {
       const totalPage = Math.ceil(totalUsers / perPage);
 
       res.json({
-        data: {
           status: 200,
-          totalUsers: totalUsers,
-          users: users,
+          data: users,
           currentPage,
           totalPage,
-        },
       });
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -275,6 +268,33 @@ class AuthController {
         // Trả về lỗi server
         status: "error",
         message: "Đã xảy ra lỗi khi xóa người dùng",
+      });
+    }
+  }async  postToAlbum(req, res) {
+    try {
+      const { title, images } = req.body;
+      console.log(title)
+      if (!title) {
+        
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid input data",
+        });
+      }
+  
+      const newAlbum = new album({ title, images });
+      console.log(newAlbum);
+      await newAlbum.save();
+  
+      res.status(201).json({
+        status: 200,
+        data: newAlbum,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        status: "error",
+        message: "Internal server error",
       });
     }
   }

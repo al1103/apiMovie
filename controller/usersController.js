@@ -66,17 +66,15 @@ class UserController {
         { expiresIn: "7d" }
       );
 
-      const data = {
+      res.status(200).json({
         status: 200,
         token,
-        user: {
+        data: {
           _id: user._id,
           username: user.username,
           email: user.email,
           role: user.role,
-        },
-      };
-      res.status(200).json(data);
+        }});
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Internal server error" });
