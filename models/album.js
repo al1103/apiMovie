@@ -1,9 +1,15 @@
 const mongoose = require("mongoose");
 
 const bannerSchema = new mongoose.Schema({
-  title : String,
+  title : { type: String, 
+    required: true,
+    unique: true,
+  },
+  
+
   images: [{
-    type: String, // Array of strings
+    id: String,
+    url: String, // Array of strings
   }],
 });
 

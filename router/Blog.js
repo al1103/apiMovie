@@ -10,6 +10,8 @@ router.get("/Posts", BlogController.getAllBlogMore);
 router.get("/getCategories", BlogController.getCategory);
 router.post("/Client", BlogController.postClient);
 router.get("/Album", BlogController.getAllImagesInAlbum);
+router.get("/get", BlogController.createBanner);
 router.get("/:slug", BlogController.getOnePosts);
+
 
 module.exports = router;

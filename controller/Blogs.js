@@ -147,15 +147,19 @@ class BlogController {
 
   async updateBanner(req, res, next) {
     try {
-      const newImages = req.body;
+      const newImages = req.body.images;
       const updatedBanner = await Banner.findOneAndUpdate(
-        {},
+        { id: "1" },
         { $set: { images: newImages } },
         { new: true }
       );
-
       if (updatedBanner) {
-        return res.status(200).json(updatedBanner);
+        return res.status(200).json(
+          {
+             status: 200,
+             message: "Banner updated successfully" }
+          
+        );
       } else {
         console.log("No banner found to update.");
         return res.status(404).json({ message: "Banner not found" });
@@ -257,6 +261,27 @@ class BlogController {
     });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
+    }
+  }async createBanner(req, res) {
+    try {
+      const bannerData = {
+        images: [
+          { url: "https://example.com/banner1.jpg" },
+          { url: "https://example.com/banner2.png" },
+          { url: "https://example.com/banner3.gif" }
+        ]
+      };
+      
+      // Tạo một instance của model Banner
+
+      const newBanner = new Banner(bannerData);
+      
+      // Lưu vào database
+      newBanner.save()
+        .then(() => console.log("Banner saved successfully"))
+        .catch(err => console.error("Error saving banner:", err));
+    } catch (error) {
+      res.status(400).json({ error: error.message });
     }
   }
   

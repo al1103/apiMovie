@@ -7,6 +7,7 @@ const category = require("../models/category");
 const PostCategories = require("../models/PostCategories");
 const client = require("../models/client");
 const album = require("../models/album");
+const Banner = require("../models/Banner");
 class AuthController {
   async createPost(req, res, next) {
     try {
@@ -58,12 +59,6 @@ class AuthController {
       await newBlog.save();
 
       const categoryIds = req.body.category;
-      if (!Array.isArray(categoryIds)) {
-        return res.status(400).json({
-          status: "fail",
-          message: "Danh mục phải là một dãy ID",
-        });
-      }
 
       const newBlogPost = new PostCategories({
         postId: newBlog._id,
@@ -72,7 +67,7 @@ class AuthController {
       await newBlogPost.save();
 
       res.status(201).json({
-        status: "201",
+        status: 201,
         message: "Bài viết được tạo thành công",
       });
     } catch (error) {
@@ -270,7 +265,11 @@ class AuthController {
         message: "Đã xảy ra lỗi khi xóa người dùng",
       });
     }
-  }async  postToAlbum(req, res) {
+  }
+  
+  
+  
+  async  postToAlbum(req, res) {
     try {
       const { title, images } = req.body;
       console.log(title)
@@ -283,7 +282,6 @@ class AuthController {
       }
   
       const newAlbum = new album({ title, images });
-      console.log(newAlbum);
       await newAlbum.save();
   
       res.status(201).json({

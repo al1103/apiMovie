@@ -62,7 +62,7 @@ class UserController {
           userId: user._id,
           role: user.role,
         },
-        "zilong-zhou", // Replace with a secure secret key
+        "zilong-zhou", 
         { expiresIn: "7d" }
       );
 
