@@ -222,22 +222,34 @@ class BlogController {
 
   async postClient(req, res) {
     try {
-      const email = req.body.email;
-      if (!email) {
-        return res.status(400).json({ error: "Email is required" });
+      const { name, phone, email, question } = req.body;
+  
+      // Kiểm tra xem có đầy đủ thông tin cần thiết không
+      if (!name || !phone || !email || !question) {
+        return res.status(400).json({ error: "All fields are required" });
       }
-
+  
+      // Kiểm tra xem email đã tồn tại chưa
       const existingClient = await Client.findOne({ email });
-
+  
       if (existingClient) {
         return res.status(400).json({ error: "Email already exists" });
       }
-
-      const newClient = new Client({ email });
+  
+      // Tạo client mới với đầy đủ thông tin
+      const newClient = new Client({
+        name,
+        phone,
+        email,
+        question
+      });
+  
+      // Lưu client mới vào database
       const savedClient = await newClient.save();
-      res.status(201).json({ status: 200 });
+      
+      res.status(201).json({ status: 200, message: "Client created successfully" });
     } catch (error) {
-      // Handle Mongoose validation errors
+      // Xử lý lỗi validation của Mongoose
       if (error.name === "ValidationError") {
         return res.status(400).json({ error: error.message });
       }
@@ -262,7 +274,36 @@ class BlogController {
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
-  }async createBanner(req, res) {
+  }
+  async  getAlbumById(req, res) {
+    try {
+      const { id } = req.params; // Assuming the album ID is passed as a route parameter
+  
+      const albumData = await Album.findById(id);
+  
+      if (!albumData) {
+        return res.status(404).json({ status: 404, error: "Album not found" });
+      }
+  
+      // Count total images in this album
+      const totalImages = await Image.countDocuments({ albumId: id });
+  
+      const images = await Image.find({ albumId: id })
+  
+      res.status(200).json({
+        status: 200,
+        data: {
+          images
+        },
+          totalImages: totalImages,
+      });
+    } catch (error) {
+      console.error('Error in getAlbumById:', error);
+      res.status(500).json({ status: 500, error: "Internal server error" });
+    }
+  }
+  
+  async createBanner(req, res) {
     try {
       const bannerData = {
         images: [
@@ -284,6 +325,40 @@ class BlogController {
       res.status(400).json({ error: error.message });
     }
   }
+  async  UpdateAlbum(req, res) {
+    try {
+      const { id } = req.params;
+      const { title, images } = req.body;
+  
+      const updatedAlbum = await album.findByIdAndUpdate(
+        id,
+        { title, images },
+        { new: true, runValidators: true }
+      );
+  
+      if (!updatedAlbum) {
+        return res.status(404).json({ status: 404, message: "Album not found" });
+      }
+  
+      res.status(200).json({
+        status: 200,
+        message: "Album updated successfully",
+      });
+    } catch (error) {
+      console.error('Error in UpdateAlbum:', error);
+      
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ status: 400, message: error.message });
+      }
+      
+      if (error.name === 'CastError' && error.kind === 'ObjectId') {
+        return res.status(400).json({ status: 400, message: "Invalid album ID format" });
+      }
+      
+      res.status(500).json({ status: 500, message: "Internal server error" });
+    }
+  }
+
   
 }
 

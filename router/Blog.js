@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const BlogController = require("../controller/Blogs");
 router.get("/getPostsByCategories/:id", BlogController.getPostsByCategoryIds);
+router.put("/Album/:id", BlogController.UpdateAlbum);
 router.get("/search", BlogController.SearchPosts);
 router.put("/updatebanner", BlogController.updateBanner);
 router.get("/getbanner", BlogController.getBanner);

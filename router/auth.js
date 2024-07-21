@@ -9,6 +9,7 @@ router.put("/Post/:slug", authController.UpdateBlog);
 router.delete("/Post/:slug", authController.deleteBlog);
 router.delete("/Client/:id", authController.deleteClient);
 router.delete("/Album/:id", authController.deleteImagesInAlbum);
+router.put("/Album/:id", authController.UpdateAlbum);
 router.get("/users", authController.getListUsers);
 router.post("/Post", authController.createPost);
 router.get("/Client", authController.getClients);
