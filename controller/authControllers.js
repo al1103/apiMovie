@@ -2,9 +2,7 @@ const User = require("../models/users_model");
 const Comment = require("../models/Comment");
 const Blogs = require("../models/blog");
 const jwt = require("jsonwebtoken");
-const BlogPost = require("../models/PostCategories");
-const category = require("../models/category");
-const PostCategories = require("../models/PostCategories");
+const Category = require("../models/category");
 const client = require("../models/client");
 const album = require("../models/album");
 const Banner = require("../models/Banner");
@@ -12,7 +10,6 @@ class AuthController {
   async createPost(req, res, next) {
     try {
       const authHeader = req.headers.authorization;
-
       if (!authHeader) {
         return res.status(401).json({
           status: "fail",
@@ -32,7 +29,18 @@ class AuthController {
         });
       }
 
-      const checkSlug = await Blogs.findOne({ slug: req.body.slug });
+      const {
+        title,
+        slug,
+        categoryId,
+        content,
+        featured,
+        description,
+        thumbnail,
+      } = req.body;
+
+      // Check if slug exists
+      const checkSlug = await Blogs.findOne({ slug });
       if (checkSlug) {
         return res.status(400).json({
           status: "fail",
@@ -40,7 +48,8 @@ class AuthController {
         });
       }
 
-      const checkTitle = await Blogs.findOne({ title: req.body.title });
+      // Check if title exists
+      const checkTitle = await Blogs.findOne({ title });
       if (checkTitle) {
         return res.status(400).json({
           status: "fail",
@@ -48,27 +57,41 @@ class AuthController {
         });
       }
 
+      // Check if category exists
+      const categoryDoc = await Category.findById(categoryId);
+      if (!categoryDoc) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Category không tồn tại",
+        });
+      }
+
       const userId = decoded.userId;
+
       const newBlog = new Blogs({
-        ...req.body,
+        title,
+        slug,
+        categoryId,
+        description,
+        content,
+        thumbnail,
+        featured: featured || false,
         authorId: userId,
       });
 
       await newBlog.validate();
+      const savedBlog = await newBlog.save();
 
-      await newBlog.save();
-
-      const categoryIds = req.body.category;
-
-      const newBlogPost = new PostCategories({
-        postId: newBlog._id,
-        categoryIds: categoryIds,
+      await Category.findByIdAndUpdate(categoryId, {
+        $push: { blog: savedBlog._id },
       });
-      await newBlogPost.save();
 
       res.status(201).json({
-        status: 201,
+        status: "success",
         message: "Bài viết được tạo thành công",
+        data: {
+          blog: savedBlog,
+        },
       });
     } catch (error) {
       if (error.name === "ValidationError") {
@@ -77,7 +100,7 @@ class AuthController {
           message: "Validation Error - " + error.message,
         });
       }
-      if (error.name === "MongoError" && error.code === 11000) {
+      if (error.name === "MongoServerError" && error.code === 11000) {
         return res.status(409).json({
           status: "fail",
           message: "Lỗi khóa trùng lặp - " + error.message,
@@ -102,41 +125,86 @@ class AuthController {
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
-  async UpdateBlog(req, res) {
+  async UpdateBlog(req, res, next) {
     try {
       const { slug } = req.params;
       const update = req.body;
 
-      const originalBlog = await Blogs.findOne({ slug: slug });
+      // Find the original blog post
+      const originalBlog = await Blogs.findOne({ slug });
       if (!originalBlog) {
-        return res.status(404).json({ message: "Không tìm thấy bài viết" });
+        return res.status(404).json({
+          status: "fail",
+          message: "Không tìm thấy bài viết",
+        });
       }
 
-      const updatedBlog = await Blogs.findOneAndUpdate({ slug: slug }, update, {
+      // If category is being updated, check if the new category exists
+      if (update.categoryId) {
+        const categoryDoc = await Category.findById(update.categoryId);
+        if (!categoryDoc) {
+          return res.status(400).json({
+            status: "fail",
+            message: "Category không tồn tại",
+          });
+        }
+      }
+
+      // Update the blog post
+      const updatedBlog = await Blogs.findOneAndUpdate({ slug }, update, {
         new: true,
+        runValidators: true,
       });
 
       if (!updatedBlog) {
-        return res.status(404).json({ message: "Không tìm thấy bài viết" });
+        return res.status(404).json({
+          status: "fail",
+          message: "Không tìm thấy bài viết",
+        });
       }
 
-      if (update.category) {
-        await PostCategories.findOneAndUpdate(
-          { postId: updatedBlog._id },
-          { categoryIds: update.category },
-          { new: true }
-        );
+      // If category has changed, update the category documents
+      if (
+        update.categoryId &&
+        update.categoryId !== originalBlog.categoryId.toString()
+      ) {
+        // Remove blog from old category
+        await Category.findByIdAndUpdate(originalBlog.categoryId, {
+          $pull: { blog: originalBlog._id },
+        });
 
-        console.log("Updated categories for blog post:", updatedBlog._id);
+        // Add blog to new category
+        await Category.findByIdAndUpdate(update.categoryId, {
+          $push: { blog: updatedBlog._id },
+        });
       }
+
       res.status(200).json({
-        status: 200,
+        status: "success",
         message: "Bài viết đã được cập nhật",
-        updatedBlog,
+        data: {
+          blog: updatedBlog,
+        },
       });
     } catch (error) {
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          status: "fail",
+          message: "Validation Error - " + error.message,
+        });
+      }
+      if (error.name === "MongoServerError" && error.code === 11000) {
+        return res.status(409).json({
+          status: "fail",
+          message: "Lỗi khóa trùng lặp - " + error.message,
+        });
+      }
       console.error("Lỗi khi cập nhật bài viết:", error);
-      res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi máy chủ nội bộ",
+      });
+      next(error);
     }
   }
 
@@ -269,7 +337,6 @@ class AuthController {
     try {
       const images = req.params.id;
       const Image = album.findOne({ _id: images });
-      console.log(Image);
       if (!Image) {
         return res.status(404).json({ error: "Image not found" });
       }

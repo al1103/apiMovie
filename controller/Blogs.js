@@ -2,7 +2,6 @@
 const Blogs = require("../models/blog");
 const Banner = require("../models/Banner");
 const Category = require("../models/category");
-const PostCategories = require("../models/PostCategories");
 const Client = require("../models/client");
 const album = require("../models/album");
 const { translate } = require("../router/translator");
@@ -19,12 +18,15 @@ class BlogController {
       const numberOfPages = Math.ceil(totalPosts / pageSize);
 
       const posts = await Blogs.find()
+        .select("-content -__v")
+        .populate("categoryId")
         .populate({
           path: "authorId",
           select: "username", // Chỉ chọn những trường cần thiết
         })
         .skip(offset) // Bỏ qua các tài liệu để phân trang
         .limit(limit); // Giới hạn số lượng tài liệu trả về
+
       if (posts.length === 0) {
         return res.status(404).json({
           status: "not found",
@@ -33,7 +35,7 @@ class BlogController {
       }
 
       res.status(200).json({
-        content: posts,
+        data: posts,
         pagination: {
           current: page,
           pageSize: pageSize,
@@ -84,58 +86,42 @@ class BlogController {
 
   async getOnePosts(req, res, next) {
     try {
-      const post = await Blogs.findOne({ slug: req.params.slug })
-        .populate({
-          path: "authorId",
-          select: "username",
-        })
-        .exec();
+      const slug = req.params.slug.toString();
+      const { limit = 5 } = req.query;
 
-      if (!post) {
-        return res.status(404).json({ message: "Không tìm thấy bài viết" });
+      // Tìm bài viết hiện tại
+      const data = await Blogs.findOne({ slug })
+        .populate("categoryId", "title")
+        .populate("authorId", "username");
+
+      if (!data) {
+        return res.status(404).json({
+          status: "fail",
+          message: "Bài viết không tồn tại",
+        });
       }
 
-      const postCategories = await PostCategories.find({ postId: post._id });
-      const categoryIds = postCategories.map((item) => item.categoryIds);
-
-      const categories = await Category.find({ _id: { $in: categoryIds } });
-
-      const relatedPosts = await PostCategories.find({ blogId: post._id })
-        .populate({
-          path: "categoryIds",
-        })
-        .populate({
-          path: "postId",
-          select: "-content", // Exclude the 'content' field from postId
-        })
-        .limit(8)
-        .exec();
-
-      const relatedArticles = relatedPosts.map((item) => item.postId);
-
-      res.json({ status: 200, data: { post, categories, relatedArticles } });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getNewPostsByCategoryIds(req, res) {
-    try {
-      const limit = parseInt(req.query.limit) || 4;
-      const posts = await PostCategories.find({
-        categoryIds: req.params.id,
+      const relatedPosts = await Blogs.find({
+        categoryId: data.categoryId,
+        _id: { $ne: data._id }, // Loại trừ bài viết hiện tại
       })
-        .populate("postId")
-        .sort({ "postId.createdAt": -1 }) // Sắp xếp theo thời gian tạo, mới nhất trước
-        .limit(limit);
-      res.status(200).json({ status: 200, data: posts, message: "success" });
-    } catch (error) {
-      console.error("Lỗi khi truy vấn bài viết theo danh mục:", error);
-      res.status(500).json({
-        status: 500,
-        error: "Internal Server Error",
-        message: error.message,
+        .limit(parseInt(limit, 10))
+        .sort({ createdAt: -1 }) // Sắp xếp theo ngày tạo, mới nhất trước
+        .populate("authorId", "username")
+        .select("title slug thumbnail description createdAt authorId");
+
+      res.status(200).json({
+        status: 200,
+        data,
+        relatedPosts,
       });
+    } catch (error) {
+      console.error("Error in getOnePosts:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi máy chủ nội bộ",
+      });
+      next(error);
     }
   }
 
@@ -214,28 +200,6 @@ class BlogController {
       res
         .status(500)
         .json({ message: "Internal server error", error: error.message });
-    }
-  }
-  async getPostsByCategoryIds(req, res) {
-    const limit = parseInt(req.query.limit) || 10;
-    const page = parseInt(req.query.page) || 1;
-    try {
-      const posts = await PostCategories.find({
-        categoryIds: { $in: req.params.id },
-      })
-        .populate("postId")
-        .limit(limit)
-        .skip((page - 1) * limit);
-      const Posts = posts.map((postCategory) => postCategory.postId);
-      res.status(200).json({ status: 200, data: Posts });
-    } catch (error) {
-      console.error("Lỗi khi truy vấn bài viết theo danh mục:", error);
-
-      res.status(500).json({
-        status: 500,
-        error: "Internal Server Error",
-        message: error.message,
-      });
     }
   }
 
@@ -325,13 +289,12 @@ class BlogController {
     try {
       const { id } = req.params; // Assuming the album ID is passed as a route parameter
 
-      const albumData = await Album.findById(id);
+      const albumData = await album.findById(id);
 
       if (!albumData) {
         return res.status(404).json({ status: 404, error: "Album not found" });
       }
 
-      // Count total images in this album
       const totalImages = await Image.countDocuments({ albumId: id });
 
       const images = await Image.find({ albumId: id });
@@ -422,6 +385,58 @@ class BlogController {
       res.status(500).json({ error: "Translation failed" });
     }
   }
-}
+  async getCategoryPosts(req, res, next) {
+    try {
+      const { categoryId } = req.params;
+      const { page = 1, limit = 10, featured = false } = req.query;
 
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({
+          status: "fail",
+          message: "Category không tồn tại",
+        });
+      }
+
+      const options = {
+        skip: (parseInt(page, 10) - 1) * parseInt(limit, 10),
+        limit: parseInt(limit, 10),
+        sort: { createdAt: -1 }, // Sắp xếp theo ngày tạo, mới nhất trước
+      };
+
+      const query = {
+        categoryId: categoryId,
+        featured: featured,
+      };
+
+      // Lấy bài viết theo điều kiện và phân trang
+      const posts = await Blogs.find(query)
+        .sort(options.sort)
+        .skip(options.skip)
+        .limit(options.limit)
+        .populate({ path: "authorId", select: "name" });
+
+      const totalPosts = await Blogs.countDocuments(query);
+
+      res.status(200).json({
+        status: 200,
+        message: "Danh sách bài viết",
+        data: posts,
+        pagination: {
+          current: parseInt(page, 10),
+          pageSize: parseInt(limit, 10),
+          total: totalPosts,
+          pages: Math.ceil(totalPosts / limit),
+        },
+      });
+    } catch (error) {
+      console.error("Error in getCategoryPosts:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi máy chủ nội bộ",
+      });
+      next(error);
+    }
+  }
+}
 module.exports = new BlogController();
