@@ -303,7 +303,7 @@ class BlogController {
 
       const data = albums.map((e) => {
         return {
-          id: e._id,
+          _id: e._id,
           title: e.title,
           images: e.images.length > 0 ? e.images[0] : null,
           total: e.images.length,
