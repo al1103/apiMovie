@@ -297,16 +297,26 @@ class BlogController {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
-      const totalImages = await album.countDocuments();
 
-      const images = await album.find().skip(skip).limit(limit);
+      const albums = await album.find().skip(skip).limit(limit);
+      const totalAlbums = await album.countDocuments();
+
+      const data = albums.map((e) => {
+        return {
+          id: e._id,
+          title: e.title,
+          images: e.images.length > 0 ? e.images[0] : null,
+        };
+      });
+
       res.status(200).json({
         status: 200,
-        data: images,
+        data: data,
         currentPage: page,
-        totalPage: Math.ceil(totalImages / limit),
+        totalPages: Math.ceil(totalAlbums / limit),
       });
     } catch (error) {
+      console.error("Error in getAllAlbum:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
