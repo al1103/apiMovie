@@ -5,6 +5,7 @@ const Category = require("../models/category");
 const PostCategories = require("../models/PostCategories");
 const Client = require("../models/client");
 const album = require("../models/album");
+const { translate } = require("../router/translator");
 
 class BlogController {
   async getAllBlog(req, res) {
@@ -32,13 +33,13 @@ class BlogController {
       }
 
       res.status(200).json({
-          content: posts,
-          pagination: {
-            current: page,
-            pageSize: pageSize,
+        content: posts,
+        pagination: {
+          current: page,
+          pageSize: pageSize,
 
-            pages: numberOfPages,
-          },
+          pages: numberOfPages,
+        },
       });
     } catch (error) {
       console.error("Error fetching blog posts:", error);
@@ -67,10 +68,10 @@ class BlogController {
       }
 
       res.status(200).json({
-          content: posts,
-          pagination: {
-            totalPage: totalPosts / limit,
-          },
+        content: posts,
+        pagination: {
+          totalPage: totalPosts / limit,
+        },
       });
     } catch (error) {
       console.error("Error fetching blog posts:", error);
@@ -118,6 +119,26 @@ class BlogController {
     }
   }
 
+  async getNewPostsByCategoryIds(req, res) {
+    try {
+      const limit = parseInt(req.query.limit) || 4;
+      const posts = await PostCategories.find({
+        categoryIds: req.params.id,
+      })
+        .populate("postId")
+        .sort({ "postId.createdAt": -1 }) // Sắp xếp theo thời gian tạo, mới nhất trước
+        .limit(limit);
+      res.status(200).json({ status: 200, data: posts, message: "success" });
+    } catch (error) {
+      console.error("Lỗi khi truy vấn bài viết theo danh mục:", error);
+      res.status(500).json({
+        status: 500,
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+
   async SearchPosts(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -154,12 +175,10 @@ class BlogController {
         { new: true }
       );
       if (updatedBanner) {
-        return res.status(200).json(
-          {
-             status: 200,
-             message: "Banner updated successfully" }
-          
-        );
+        return res.status(200).json({
+          status: 200,
+          message: "Banner updated successfully",
+        });
       } else {
         console.log("No banner found to update.");
         return res.status(404).json({ message: "Banner not found" });
@@ -222,32 +241,34 @@ class BlogController {
 
   async postClient(req, res) {
     try {
-      const { name, phone, email, question } = req.body;
-  
+      const { name, phone, email, question } = req.body.params;
+
       // Kiểm tra xem có đầy đủ thông tin cần thiết không
       if (!name || !phone || !email || !question) {
         return res.status(400).json({ error: "All fields are required" });
       }
-  
+
       // Kiểm tra xem email đã tồn tại chưa
       const existingClient = await Client.findOne({ email });
-  
+
       if (existingClient) {
         return res.status(400).json({ error: "Email already exists" });
       }
-  
+
       // Tạo client mới với đầy đủ thông tin
       const newClient = new Client({
         name,
         phone,
         email,
-        question
+        question,
       });
-  
+
       // Lưu client mới vào database
       const savedClient = await newClient.save();
-      
-      res.status(201).json({ status: 200, message: "Client created successfully" });
+
+      res
+        .status(201)
+        .json({ status: 200, message: "Client created successfully" });
     } catch (error) {
       // Xử lý lỗi validation của Mongoose
       if (error.name === "ValidationError") {
@@ -258,6 +279,21 @@ class BlogController {
   }
   async getAllImagesInAlbum(req, res) {
     try {
+      const id = req.query.id;
+      const totalImages = await album.countDocuments();
+      const images = await album.find({ _id: id });
+      console.log(images);
+      res.status(200).json({
+        status: 200,
+        data: images,
+        total: totalImages,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  async getAllAlbum(req, res) {
+    try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
@@ -265,101 +301,116 @@ class BlogController {
 
       const images = await album.find().skip(skip).limit(limit);
       res.status(200).json({
-          status: 200,
-          data: images,
-          currentPage: page,
-          totalPage: Math.ceil(totalImages / limit),
-        
-    });
+        status: 200,
+        data: images,
+        currentPage: page,
+        totalPage: Math.ceil(totalImages / limit),
+      });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   }
-  async  getAlbumById(req, res) {
+  async getAlbumById(req, res) {
     try {
       const { id } = req.params; // Assuming the album ID is passed as a route parameter
-  
+
       const albumData = await Album.findById(id);
-  
+
       if (!albumData) {
         return res.status(404).json({ status: 404, error: "Album not found" });
       }
-  
+
       // Count total images in this album
       const totalImages = await Image.countDocuments({ albumId: id });
-  
-      const images = await Image.find({ albumId: id })
-  
+
+      const images = await Image.find({ albumId: id });
+
       res.status(200).json({
         status: 200,
         data: {
-          images
+          images,
         },
-          totalImages: totalImages,
+        totalImages: totalImages,
       });
     } catch (error) {
-      console.error('Error in getAlbumById:', error);
+      console.error("Error in getAlbumById:", error);
       res.status(500).json({ status: 500, error: "Internal server error" });
     }
   }
-  
+
   async createBanner(req, res) {
     try {
       const bannerData = {
         images: [
           { url: "https://example.com/banner1.jpg" },
           { url: "https://example.com/banner2.png" },
-          { url: "https://example.com/banner3.gif" }
-        ]
+          { url: "https://example.com/banner3.gif" },
+        ],
       };
-      
+
       // Tạo một instance của model Banner
 
       const newBanner = new Banner(bannerData);
-      
+
       // Lưu vào database
-      newBanner.save()
+      newBanner
+        .save()
         .then(() => console.log("Banner saved successfully"))
-        .catch(err => console.error("Error saving banner:", err));
+        .catch((err) => console.error("Error saving banner:", err));
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
   }
-  async  UpdateAlbum(req, res) {
+  async UpdateAlbum(req, res) {
     try {
       const { id } = req.params;
       const { title, images } = req.body;
-  
+
       const updatedAlbum = await album.findByIdAndUpdate(
         id,
         { title, images },
         { new: true, runValidators: true }
       );
-  
+
       if (!updatedAlbum) {
-        return res.status(404).json({ status: 404, message: "Album not found" });
+        return res
+          .status(404)
+          .json({ status: 404, message: "Album not found" });
       }
-  
+
       res.status(200).json({
         status: 200,
         message: "Album updated successfully",
       });
     } catch (error) {
-      console.error('Error in UpdateAlbum:', error);
-      
-      if (error.name === 'ValidationError') {
+      console.error("Error in UpdateAlbum:", error);
+
+      if (error.name === "ValidationError") {
         return res.status(400).json({ status: 400, message: error.message });
       }
-      
-      if (error.name === 'CastError' && error.kind === 'ObjectId') {
-        return res.status(400).json({ status: 400, message: "Invalid album ID format" });
+
+      if (error.name === "CastError" && error.kind === "ObjectId") {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Invalid album ID format" });
       }
-      
+
       res.status(500).json({ status: 500, message: "Internal server error" });
     }
   }
-
-  
+  async TextTranslate(req, res) {
+    try {
+      const { text, targetLanguage, sourceLanguage } = req.body;
+      const translatedText = await translate(
+        text,
+        targetLanguage,
+        sourceLanguage
+      );
+      res.json({ translatedText });
+    } catch (error) {
+      res.status(500).json({ error: "Translation failed" });
+    }
+  }
 }
 
 module.exports = new BlogController();

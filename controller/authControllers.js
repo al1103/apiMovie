@@ -129,9 +129,11 @@ class AuthController {
 
         console.log("Updated categories for blog post:", updatedBlog._id);
       }
-      res.status(200).json({ status: 200,
+      res.status(200).json({
+        status: 200,
         message: "Bài viết đã được cập nhật",
-        updatedBlog});
+        updatedBlog,
+      });
     } catch (error) {
       console.error("Lỗi khi cập nhật bài viết:", error);
       res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
@@ -171,10 +173,10 @@ class AuthController {
       const totalPage = Math.ceil(totalUsers / perPage);
 
       res.json({
-          status: 200,
-          data: users,
-          currentPage,
-          totalPage,
+        status: 200,
+        data: users,
+        currentPage,
+        totalPage,
       });
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -205,60 +207,60 @@ class AuthController {
   async deleteClient(req, res) {
     try {
       const id = req.params.id;
-  
+
       // Kiểm tra xem id có hợp lệ không
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           status: 400,
-          error: "Invalid client ID format"
+          error: "Invalid client ID format",
         });
       }
-  
+
       const deletedClient = await Client.findByIdAndDelete(id);
-  
+
       if (!deletedClient) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           status: 404,
-          error: "Client not found" 
+          error: "Client not found",
         });
       }
-  
-      res.status(200).json({ 
+
+      res.status(200).json({
         status: 200,
         message: "Client deleted successfully",
         deletedClient: {
           id: deletedClient._id,
-          email: deletedClient.email
-        }
+          email: deletedClient.email,
+        },
       });
     } catch (error) {
-      console.error('Error in deleteClient:', error);
-      res.status(500).json({ 
+      console.error("Error in deleteClient:", error);
+      res.status(500).json({
         status: 500,
         error: "Internal server error",
-        message: error.message 
+        message: error.message,
       });
     }
   }
   async getClients(req, res) {
     try {
-      const clients = await Client.find().select('-__v'); // Loại bỏ trường __v nếu không cần thiết
-      
+      const clients = await Client.find().select("-__v"); // Loại bỏ trường __v nếu không cần thiết
+
       if (clients.length === 0) {
         return res.status(204).json({ message: "No clients found" });
       }
-  
+
       res.status(200).json({
         status: 200,
         count: clients.length,
-        data: clients
+        data: clients,
       });
     } catch (error) {
-      console.error('Error in getClients:', error);
-      res.status(500).json({ 
+      console.error("Error in getClients:", error);
+      res.status(500).json({
         status: 500,
         error: "Internal server error",
-        message: error.message 
+        message: error.message,
       });
     }
   }
@@ -276,30 +278,27 @@ class AuthController {
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
-  }async  UpdateAlbum(req, res) {
+  }
+  async UpdateAlbum(req, res) {
     try {
       const { id } = req.params; // Album ID from route parameter
-      const { title , images } = req.body; // New album details from request body
-  
-      const updatedAlbum = await album.findByIdAndUpdate(
-        id,
-        { title, images },
-        { new: true, runValidators: true }
-      );
-  
-      if (!updatedAlbum) {
-        return res.status(404).json({ status: 404, error: "Album not found" });
+      const { title, images } = req.body;
+      const Album = await album.findOne({ _id: id });
+      if (!album) {
+        return res.status(404).send({ message: "Album not found" });
       }
+      Album.title = title;
+      Album.images = images;
+
+      const result = await Album.save();
+
       res.status(200).json({
         status: 200,
-        message: "Album updated successfully",
+        message: "Album đã được cập nhật",
+        data: result,
       });
     } catch (error) {
-      console.error('Error in getAndUpdateAlbum:', error);
-      if (error.name === 'ValidationError') {
-        return res.status(400).json({ status: 400, error: error.message });
-      }
-      res.status(500).json({ status: 500, error: "Internal server error" });
+      res.status(500).send({ message: "Error updating album", error });
     }
   }
 
@@ -331,24 +330,21 @@ class AuthController {
       });
     }
   }
-  
-  
-  
-  async  postToAlbum(req, res) {
+
+  async postToAlbum(req, res) {
     try {
       const { title, images } = req.body;
-      console.log(title)
+      console.log(title);
       if (!title) {
-        
         return res.status(400).json({
           status: "error",
           message: "Invalid input data",
         });
       }
-  
+
       const newAlbum = new album({ title, images });
       await newAlbum.save();
-  
+
       res.status(201).json({
         status: 200,
         data: newAlbum,
