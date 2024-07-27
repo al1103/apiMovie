@@ -306,6 +306,7 @@ class BlogController {
           id: e._id,
           title: e.title,
           images: e.images.length > 0 ? e.images[0] : null,
+          total: totalAlbums.length,
         };
       });
 
