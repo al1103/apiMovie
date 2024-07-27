@@ -276,16 +276,14 @@ class AuthController {
     try {
       const id = req.params.id;
 
-      // Kiểm tra xem id có hợp lệ không
-      if (!mongoose.Types.ObjectId.isValid(id)) {
+      if (!id.match(/^[0-9a-fA-F]{24}$/)) {
         return res.status(400).json({
           status: 400,
           error: "Invalid client ID format",
         });
       }
 
-      const deletedClient = await Client.findByIdAndDelete(id);
-
+      const deletedClient = await client.findByIdAndDelete(id);
       if (!deletedClient) {
         return res.status(404).json({
           status: 404,
@@ -333,10 +331,10 @@ class AuthController {
     }
   }
 
-  async deleteImagesInAlbum(req, res) {
+  async deleteAlbum(req, res) {
     try {
-      const images = req.params.id;
-      const Image = album.findOne({ _id: images });
+      const id = req.params.id;
+      const Image = album.findOne({ _id: id });
       if (!Image) {
         return res.status(404).json({ error: "Image not found" });
       }
