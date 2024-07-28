@@ -224,9 +224,7 @@ class BlogController {
   async postClient(req, res) {
     try {
       const { name, phone, email, question } = req.body;
-      console.log(req.body);
 
-      // Kiểm tra xem có đầy đủ thông tin cần thiết không
       if (!name || !phone || !email || !question) {
         return res.status(400).json({ error: "All fields are required" });
       }
@@ -238,20 +236,25 @@ class BlogController {
         question,
       });
 
-      // Lưu client mới vào database
       const savedClient = await newClient.save();
 
       res
         .status(201)
-        .json({ status: 200, message: "Client created successfully" });
+        .json({ status: 201, message: "Client created successfully" });
     } catch (error) {
-      // Xử lý lỗi validation của Mongoose
       if (error.name === "ValidationError") {
-        return res.status(400).json({ error: error.message });
+        const validationErrors = Object.values(error.errors).map(
+          (err) => err.message
+        );
+        return res
+          .status(400)
+          .json({ error: "Validation failed", details: validationErrors });
       }
+      console.error("Error saving client:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
+
   async getAllImagesInAlbum(req, res) {
     try {
       const id = req.query.id;

@@ -11,22 +11,20 @@ const clientSchema = new Schema(
     phone: {
       type: String,
       required: [true, "Phone number is required"],
-      trim: true,
       validate: {
-        validator: (phone) => /^\+?[1-9]\d{1,14}$/.test(phone),
-        message: "Please enter a valid phone number",
+        validator: function (v) {
+          // This regex allows for more flexible phone number formats
+          return /^[0-9+\-\s()]{7,20}$/.test(v);
+        },
+        message: (props) =>
+          `${props.value} is not a valid phone number format!`,
       },
     },
     email: {
       type: String,
       required: [true, "Email is required"],
-      unique: true,
-      trim: true,
       lowercase: true,
-      validate: {
-        validator: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-        message: "Please enter a valid email address",
-      },
+      trim: true,
     },
     question: {
       type: String,
@@ -35,14 +33,12 @@ const clientSchema = new Schema(
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
-// Adding unique index on email field for uniqueness constraint
-clientSchema.index({ email: 1 }, { unique: true });
-
-// Adding text index on email and name fields for text search
 clientSchema.index({ email: "text", name: "text" });
 
-module.exports = mongoose.model("Client", clientSchema);
+const Client = mongoose.model("Client", clientSchema);
+
+module.exports = Client;
