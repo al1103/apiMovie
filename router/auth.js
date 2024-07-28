@@ -14,5 +14,6 @@ router.get("/users", authController.getListUsers);
 router.post("/Post", authController.createPost);
 router.get("/Client", authController.getClients);
 router.post("/Album", authController.postToAlbum);
+router.post("/addFeaturedBlogPost/:id", authController.addFeaturedBlogPost);
 
 module.exports = router;
