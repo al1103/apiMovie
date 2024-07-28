@@ -9,23 +9,41 @@ const { translate } = require("../router/translator");
 class BlogController {
   async getAllBlog(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const currentPage = parseInt(req.query.pagination.current) || 1;
-      const pageSize = parseInt(req.query.pagination.pageSize) || 10;
+      const currentPage = parseInt(req.query.pagination?.current) || 1;
+      const pageSize = parseInt(req.query.pagination?.pageSize) || 10;
+      const sortOrder = req.query.sortOrder === "ascend" ? 1 : -1;
+      const sortField = req.query.sortField || ["createdAt"];
       const offset = (currentPage - 1) * pageSize;
-      const limit = pageSize;
-      const totalPosts = await Blogs.countDocuments();
+
+      // Build the sort object
+      const sort = {};
+      sortField.forEach((field) => {
+        if (field === "categoryId") {
+          sort["categoryId.name"] = sortOrder;
+        } else {
+          sort[field] = sortOrder;
+        }
+      });
+
+      // Build the filter object
+      const filter = {};
+      if (req.query.filters?.title) {
+        filter.title = { $regex: req.query.filters.title, $options: "i" };
+      }
+
+      const totalPosts = await Blogs.countDocuments(filter);
       const numberOfPages = Math.ceil(totalPosts / pageSize);
 
-      const posts = await Blogs.find()
+      const posts = await Blogs.find(filter)
         .select("-content -__v")
         .populate("categoryId")
         .populate({
           path: "authorId",
-          select: "username", // Chỉ chọn những trường cần thiết
+          select: "username",
         })
-        .skip(offset) // Bỏ qua các tài liệu để phân trang
-        .limit(limit); // Giới hạn số lượng tài liệu trả về
+        .sort(sort)
+        .skip(offset)
+        .limit(pageSize);
 
       if (posts.length === 0) {
         return res.status(404).json({
@@ -37,9 +55,9 @@ class BlogController {
       res.status(200).json({
         data: posts,
         pagination: {
-          current: page,
+          current: currentPage,
           pageSize: pageSize,
-
+          total: totalPosts,
           pages: numberOfPages,
         },
       });
@@ -205,7 +223,7 @@ class BlogController {
 
   async postClient(req, res) {
     try {
-      const { name, phone, email, question } = req.body.params;
+      const { name, phone, email, question } = req.body;
 
       // Kiểm tra xem có đầy đủ thông tin cần thiết không
       if (!name || !phone || !email || !question) {

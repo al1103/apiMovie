@@ -24,4 +24,16 @@ const blogPostSchema = new mongoose.Schema({
 
 blogPostSchema.index({ title: "text", content: "text" });
 
+blogPostSchema.pre("remove", async function (next) {
+  if (this.categoryId) {
+    const Category = mongoose.model("Category");
+    await Category.findByIdAndUpdate(
+      this.categoryId,
+      { $pull: { blogPosts: this._id } },
+      { new: true }
+    );
+  }
+  next();
+});
+
 module.exports = mongoose.model("BlogPost", blogPostSchema);

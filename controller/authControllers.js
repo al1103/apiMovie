@@ -83,7 +83,7 @@ class AuthController {
       const savedBlog = await newBlog.save();
 
       await Category.findByIdAndUpdate(categoryId, {
-        $push: { blog: savedBlog._id },
+        $push: { blogPosts: savedBlog._id },
       });
 
       res.status(201).json({
