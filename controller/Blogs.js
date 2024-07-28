@@ -402,7 +402,7 @@ class BlogController {
   async getCategoryPosts(req, res, next) {
     try {
       const { categoryId } = req.params;
-      const { page = 1, limit = 10, featured = false } = req.query;
+      const { page = 1, limit = 10, featured } = req.query;
 
       const category = await Category.findById(categoryId);
       if (!category) {
@@ -420,10 +420,13 @@ class BlogController {
 
       const query = {
         categoryId: categoryId,
-        featured: featured,
       };
 
-      // Lấy bài viết theo điều kiện và phân trang
+      // Only add featured to the query if it's specified
+      if (featured) {
+        query.featured = featured === "true"; // Convert featured to boolean
+      }
+
       const posts = await Blogs.find(query)
         .sort(options.sort)
         .skip(options.skip)

@@ -422,14 +422,15 @@ class AuthController {
       });
     }
   }
-  async addFeaturedBlogPost(req, res) {
+  async FeaturedBlogPost(req, res) {
     try {
       const { id } = req.params;
+      const featured = req.body.featured;
       const blog = await Blogs.findById(id);
       if (!blog) {
         return res.status(404).json({ message: "Blog not found" });
       }
-      blog.featured = true;
+      blog.featured = featured;
       await blog.save();
       res.status(200).json({
         status: 200,
