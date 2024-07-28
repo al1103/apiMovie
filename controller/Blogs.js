@@ -224,20 +224,13 @@ class BlogController {
   async postClient(req, res) {
     try {
       const { name, phone, email, question } = req.body;
+      console.log(req.body);
 
       // Kiểm tra xem có đầy đủ thông tin cần thiết không
       if (!name || !phone || !email || !question) {
         return res.status(400).json({ error: "All fields are required" });
       }
 
-      // Kiểm tra xem email đã tồn tại chưa
-      const existingClient = await Client.findOne({ email });
-
-      if (existingClient) {
-        return res.status(400).json({ error: "Email already exists" });
-      }
-
-      // Tạo client mới với đầy đủ thông tin
       const newClient = new Client({
         name,
         phone,
