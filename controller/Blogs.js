@@ -5,6 +5,7 @@ const Category = require("../models/category");
 const Client = require("../models/client");
 const album = require("../models/album");
 const { translate } = require("../router/translator");
+const poster = require("../models/poster");
 
 class BlogController {
   async getAllBlog(req, res) {
@@ -205,7 +206,41 @@ class BlogController {
       return res.status(500).json({ message: "Internal server error" });
     }
   }
+  async updatePoster(req, res, next) {
+    try {
+      const newImages = req.body.images;
+      const updatedPoster = await poster.findOneAndUpdate(
+        { id: "1" },
+        { $set: { images: newImages } },
+        { new: true }
+      );
+      if (updatedBanner) {
+        return res.status(200).json({
+          status: 200,
+          message: "Poster updated successfully",
+        });
+      } else {
+        console.log("No Poster found to update.");
+        return res.status(404).json({ message: "Poster not found" });
+      }
+    } catch (error) {
+      console.error("Error updating poster:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+  async getPoster(req, res, next) {
+    try {
+      const banners = await Banner.find();
 
+      if (!banners || banners.length === 0) {
+        return res.status(404).json({ message: "Banner not found" });
+      }
+      return res.status(200).json(banners);
+    } catch (error) {
+      console.error("Error fetching banner:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
   async getCategory(req, res) {
     try {
       const categories = await Category.find();
