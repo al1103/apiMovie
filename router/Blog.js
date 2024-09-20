@@ -14,6 +14,7 @@ router.get("/:slug", BlogController.getOnePosts);
 
 router.post("/Client", BlogController.postClient);
 router.post("/translate", BlogController.TextTranslate);
+router.post("/postbanner", BlogController.postBanner);
 
 router.put("/Album/:id", BlogController.UpdateAlbum);
 router.put("/updatebanner", BlogController.updateBanner);
