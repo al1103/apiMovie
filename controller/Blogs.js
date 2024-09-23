@@ -490,5 +490,37 @@ class BlogController {
       next(error);
     }
   }
+  async postBanner(req, res, next) {
+    try {
+      const images = req.body.images;
+      console.log(images);
+
+      if (!images || !Array.isArray(images) || images.length === 0) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Vui lòng cung cấp một mảng các URL hình ảnh cho banner",
+        });
+      }
+
+      const newBanner = new Banner({
+        images: images.map((url) => ({ url })),
+      });
+
+      const savedBanner = await newBanner.save();
+
+      res.status(201).json({
+        status: "success",
+        message: "Đã tạo banner thành công",
+        data: savedBanner,
+      });
+    } catch (error) {
+      console.error("Lỗi trong postBanner:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Lỗi máy chủ nội bộ",
+      });
+      next(error);
+    }
+  }
 }
 module.exports = new BlogController();
