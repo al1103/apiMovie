@@ -16,4 +16,5 @@ router.post("/translate", BlogController.TextTranslate);
 router.post("/postbanner", BlogController.postBanner);
 router.put("/Album/:id", BlogController.UpdateAlbum);
 router.put("/updatebanner", BlogController.updateBanner);
+router.put("/updatePoster", BlogController.updatePoster);
 module.exports = router;

@@ -214,7 +214,7 @@ class BlogController {
         { $set: { images: newImages } },
         { new: true }
       );
-      if (updatedBanner) {
+      if (updatedPoster) {
         return res.status(200).json({
           status: 200,
           message: "Poster updated successfully",
@@ -524,3 +524,4 @@ class BlogController {
   }
 }
 module.exports = new BlogController();
+c;
