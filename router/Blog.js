@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const BlogController = require("../controller/Blogs");
+
 router.get("/getCategoryPosts/:categoryId", BlogController.getCategoryPosts);
 router.get("/search", BlogController.SearchPosts);
 router.get("/getbanner", BlogController.getBanner);
@@ -17,4 +18,5 @@ router.post("/postbanner", BlogController.postBanner);
 router.put("/Album/:id", BlogController.UpdateAlbum);
 router.put("/updatebanner", BlogController.updateBanner);
 router.put("/updatePoster", BlogController.updatePoster);
+
 module.exports = router;

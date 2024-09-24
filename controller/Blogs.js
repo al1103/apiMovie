@@ -209,25 +209,34 @@ class BlogController {
   async updatePoster(req, res, next) {
     try {
       const newImages = req.body.images;
-      const updatedPoster = await poster.findOneAndUpdate(
-        { id: "1" },
-        { $set: { images: newImages } },
-        { new: true }
-      );
-      if (updatedPoster) {
+      console.log(newImages);
+
+      // Tìm poster đầu tiên trong cơ sở dữ liệu
+      let currentPoster = await poster.findOne();
+
+      if (!currentPoster) {
+        // Nếu không tìm thấy poster, tạo mới
+        currentPoster = new poster({ images: newImages });
+        await currentPoster.save();
+        return res.status(201).json({
+          status: 201,
+          message: "Poster created successfully",
+        });
+      } else {
+        // Nếu tìm thấy poster, cập nhật
+        currentPoster.images = newImages;
+        await currentPoster.save();
         return res.status(200).json({
           status: 200,
           message: "Poster updated successfully",
         });
-      } else {
-        console.log("No Poster found to update.");
-        return res.status(404).json({ message: "Poster not found" });
       }
     } catch (error) {
       console.error("Error updating poster:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }
+
   async getPoster(req, res, next) {
     try {
       const banners = await Banner.find();
@@ -524,4 +533,3 @@ class BlogController {
   }
 }
 module.exports = new BlogController();
-c;
