@@ -2,23 +2,41 @@ const authRouter = require("./auth");
 const usersRouter = require("./users");
 const syntheticRouter = require("./synthetic");
 const Blogs = require("./Blog");
-const authenticateToken = require("../controller/middlewareToken"); // Adjust based on your export
+const authenticateToken = require("../controller/middlewareToken"); // Điều chỉnh dựa trên cách xuất của bạn
 
 function authorize(allowedRoles) {
   return (req, res, next) => {
-    const userRole = req.isRole; // Get userRole from authenticateToken middleware
-    if (userRole.includes(userRole)) {
-      next(); // Role is allowed, proceed to the next middleware or route handler
-    } else {
-      return res.status(403).json({ error: "Unauthorized" });
+    const token = req.headers["authorization"]?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Không có token" });
     }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({ error: "Token không hợp lệ" });
+      }
+
+      req.user = user;
+      const userRole = user.role;
+
+      if (allowedRoles.includes(userRole)) {
+        next();
+      } else {
+        return res.status(403).json({ error: "Không được phép truy cập" });
+      }
+    });
   };
 }
 
 function routes(app) {
-  app.use("/auth", authenticateToken, authorize("admin"), authRouter); // Authentication routes, no need for authorization here
-  app.use("/users", usersRouter);
-  app.use("/synthetic", authorize("admin"), syntheticRouter); // Require authentication and specific role
+  app.use("/auth", authenticateToken, authRouter); // Các route xác thực, không cần ủy quyền ở đây
+  app.use("/users", authenticateToken, usersRouter);
+  app.use(
+    "/synthetic",
+    authenticateToken,
+    authorize(["admin"]),
+    syntheticRouter
+  );
   app.use("/", Blogs);
 }
 

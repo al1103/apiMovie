@@ -3,28 +3,44 @@ const jwt = require("jsonwebtoken");
 function authenticateToken(req, res, next) {
   const authorizationHeader = req.headers["authorization"];
 
-  const token = authorizationHeader && authorizationHeader.split(" ")[1];
+  if (!authorizationHeader) {
+    return res.status(401).json({ error: "Thiếu token xác thực" });
+  }
+
+  const token = authorizationHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Invalid Token" });
+    return res.status(401).json({ error: "Token không hợp lệ" });
   }
+
   try {
-    const decodedToken = jwt.verify(token, "zilong-zhou");
-    const isRole = decodedToken.role;
-    if (isRole === "admin") {
-      req.isRole = "admin";
-    } else if (isRole === "user") {
-      req.isRole = "user";
-    } else {
-      return res.status(403).json({ error: "Unauthorized role" });
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET || "zilong-zhou");
+    
+    if (!decodedToken.role) {
+      return res.status(403).json({ error: "Token không chứa thông tin vai trò" });
     }
+
+    switch (decodedToken.role) {
+      case "admin":
+      case "user":
+        req.user = {
+          id: decodedToken.userId,
+          role: decodedToken.role
+        };
+        break;
+      default:
+        return res.status(403).json({ error: "Vai trò không được phép" });
+    }
+
     next();
   } catch (e) {
     if (e.name === "JsonWebTokenError") {
-      return res.status(403).json({ error: "Invalid token signature" });
+      return res.status(403).json({ error: "Chữ ký token không hợp lệ" });
+    } else if (e.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Token đã hết hạn" });
     } else {
-      console.error(e);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Lỗi xác thực token:", e);
+      return res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   }
 }

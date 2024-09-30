@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const syntheticController = require("../controller/syntheticController");
+
 router.get("/users/:id", syntheticController.getUser);
 router.use("/changePassword", syntheticController.changePassword);
 router.post("/forgotPassword", syntheticController.forgotPassword);

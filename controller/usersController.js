@@ -62,7 +62,7 @@ class UserController {
           userId: user._id,
           role: user.role,
         },
-        "zilong-zhou", 
+        "zilong-zhou",
         { expiresIn: "7d" }
       );
 
@@ -74,7 +74,8 @@ class UserController {
           username: user.username,
           email: user.email,
           role: user.role,
-        }});
+        },
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Internal server error" });
@@ -247,6 +248,30 @@ class UserController {
   //     res.status(200).json(commentsWithUserInfo);
   //   });
   // }
+  async createAdminAccount() {
+    try {
+      const adminExists = await User.findOne({ role: "admin" });
+      if (adminExists) {
+        console.log("Tài khoản admin đã tồn tại.");
+        return;
+      }
+
+      const adminPassword = process.env.ADMIN_PASSWORD || "AdminPassword123!";
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+      const adminUser = new User({
+        username: "admin",
+        email: "admin@example.com",
+        password: hashedPassword,
+        role: "admin",
+      });
+
+      await adminUser.save();
+      console.log("Tài khoản admin đã được tạo thành công.");
+    } catch (error) {
+      console.error("Lỗi khi tạo tài khoản admin:", error);
+    }
+  }
 }
 
 module.exports = new UserController();

@@ -18,5 +18,6 @@ router.post("/postbanner", BlogController.postBanner);
 router.put("/Album/:id", BlogController.UpdateAlbum);
 router.put("/updatebanner", BlogController.updateBanner);
 router.put("/updatePoster", BlogController.updatePoster);
+router.post("/categories", BlogController.createCategory);
 
 module.exports = router;
