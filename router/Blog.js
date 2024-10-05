@@ -10,6 +10,7 @@ router.get("/get", BlogController.createBanner);
 router.get("/Album", BlogController.getAllImagesInAlbum);
 router.get("/Albums", BlogController.getAllAlbum);
 router.get("/Post", BlogController.getAllBlog);
+router.get("/Poster", BlogController.getPoster);
 router.get("/Posts", BlogController.getAllBlogMore);
 router.get("/:slug", BlogController.getOnePosts);
 router.post("/Client", BlogController.postClient);

@@ -1,13 +1,12 @@
 const mongoose = require("mongoose");
 
 const posterSchema = new mongoose.Schema({
-  images: [
+  posters: [
     {
-      url: { type: String }
-    }
-  ]
-  ,
-  id: { type: String }
+      url: { type: String },
+    },
+  ],
+  id: { type: String },
 });
 
 module.exports = mongoose.model("Poster", posterSchema);

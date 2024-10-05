@@ -3,7 +3,7 @@ const Blogs = require("../models/blog");
 const Category = require("../models/category");
 const Client = require("../models/client");
 const Albums = require("../models/album");
-const poster = require("../models/poster");
+const Posters = require("../models/poster");
 const Banner = require("../models/banner");
 
 async function getAllBlog(req, res) {
@@ -78,6 +78,7 @@ function sendNotFoundResponse(res) {
 
 function sendSuccessResponse(res, posts, categories, pagination) {
   res.status(200).json({
+    status: 200,
     data: posts,
     categories,
     pagination,
@@ -111,7 +112,8 @@ class BlogController {
       }
 
       res.status(200).json({
-        content: posts,
+        status: 200,
+        data: posts,
         pagination: {
           totalPage: Math.ceil(totalPosts / limit),
         },
@@ -239,45 +241,49 @@ class BlogController {
 
   async updatePoster(req, res, next) {
     try {
-      const newImages = req.body.images;
-      console.log(newImages);
+      const { posters } = req.body;
+
+      // Format lại mảng poster
+      const formattedPosters = posters.map((url) => ({ url }));
 
       // Tìm poster đầu tiên trong cơ sở dữ liệu
-      let currentPoster = await poster.findOne();
-
-      if (!currentPoster) {
-        // Nếu không tìm thấy poster, tạo mới
-        currentPoster = new poster({ images: newImages });
-        await currentPoster.save();
-        return res.status(201).json({
-          status: 201,
-          message: "Poster đã được tạo thành công",
-        });
+      let poster = await Posters.findOne(); // Giả sử model là Poster
+      console.log(poster);
+      if (poster) {
+        // Nếu tìm thấy poster, cập nhật mảng poster
+        poster.posters = formattedPosters;
+        await poster.save();
       } else {
-        // Nếu tìm thấy poster, cập nhật
-        currentPoster.images = newImages;
-        await currentPoster.save();
-        return res.status(200).json({
-          status: 200,
-          message: "Poster đã được cập nhật thành công",
+        // Nếu không tìm thấy poster, tạo mới
+        poster = new Posters({
+          posters: formattedPosters,
         });
+        await poster.save();
       }
+
+      res
+        .status(200)
+        .json({ message: "Poster đã được cập nhật thành công", poster });
     } catch (error) {
       console.error("Lỗi khi cập nhật poster:", error);
-      return res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
+      res.status(500).json({ message: "Không thể cập nhật poster" });
     }
   }
 
   async getPoster(req, res, next) {
     try {
-      const banners = await Banner.find();
+      const posters = await Posters.find();
 
-      if (!banners || banners.length === 0) {
-        return res.status(404).json({ message: "Không tìm thấy banner" });
+      if (!posters || posters.length === 0) {
+        return res.status(404).json({ message: "Không tìm thấy poster" });
       }
-      return res.status(200).json(banners);
+      return res.status(200).json({
+        status: 200,
+        data: posters,
+        message: "Lấy poster thành công",
+      });
     } catch (error) {
-      console.error("Lỗi khi lấy banner:", error);
+      console.error("Lỗi khi lấy poster:", error);
       return res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
     }
   }
