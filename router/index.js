@@ -30,7 +30,7 @@ function authorize(allowedRoles) {
 
 function routes(app) {
   app.use("/auth", authenticateToken, authRouter); // Các route xác thực, không cần ủy quyền ở đây
-  app.use("/users", authenticateToken, usersRouter);
+  app.use("/users", usersRouter);
   app.use(
     "/synthetic",
     authenticateToken,
